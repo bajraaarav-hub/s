@@ -162,9 +162,6 @@ export function AttendanceTracker({students}: {students: Student[]}) {
             <CardContent>
               <p className="text-sm text-muted-foreground text-center italic">"{analysisResult.summary}"</p>
             </CardContent>
-            <CardFooter>
-              <CodeBlock code={JSON.stringify(analysisResult, null, 2)} />
-            </CardFooter>
           </Card>
         )}
       </div>
