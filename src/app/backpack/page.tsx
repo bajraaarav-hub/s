@@ -6,7 +6,7 @@ import { Homework, Student } from '@/lib/types';
 import { collection, query, doc } from 'firebase/firestore';
 import { useEffect } from 'react';
 import { setDocumentNonBlocking } from '@/firebase/non-blocking-updates';
-import { homeworkAssignments as mockHomework, leaderboardData } from '@/lib/data';
+import { homeworkAssignments as mockHomework, leaderboardData, mainStudent } from '@/lib/data';
 
 export default function BackpackPage() {
   const firestore = useFirestore();
@@ -26,7 +26,7 @@ export default function BackpackPage() {
 
   // Seed data for demonstration
   useEffect(() => {
-    if (firestore) {
+    if (firestore && user) {
       // Seed homework
       mockHomework.forEach(hw => {
         const hwRef = doc(firestore, 'homework', hw.id);
@@ -34,18 +34,29 @@ export default function BackpackPage() {
       });
       // Seed users
       leaderboardData.forEach(student => {
-        const userRef = doc(firestore, 'users', student.id);
-        setDocumentNonBlocking(userRef, student, { merge: true });
+        if (student.id !== user.uid) {
+            const userRef = doc(firestore, 'users', student.id);
+            setDocumentNonBlocking(userRef, student, { merge: true });
+        }
       });
     }
-  }, [firestore]);
+  }, [firestore, user]);
 
+  // Create the student doc for the anonymous user if it doesn't exist.
+  useEffect(() => {
+      if (!isStudentLoading && !studentData && user && firestore) {
+        const userRef = doc(firestore, 'users', user.uid);
+        const newStudent = { ...mainStudent, id: user.uid, email: user.email || 'anonymous@example.com', name: 'Anonymous Panda' };
+        setDocumentNonBlocking(userRef, newStudent, { merge: true });
+      }
+  }, [isStudentLoading, studentData, user, firestore]);
 
   if (isHomeworkLoading || isUserLoading || isStudentLoading) {
     return <div>Loading...</div>;
   }
 
-  const currentStudent = studentData;
+  const currentStudent = studentData || { ...mainStudent, id: user?.uid || mainStudent.id, name: 'Anonymous Panda'};
+
 
   if (!currentStudent || !allHomework) {
     return <div>Loading student data...</div>

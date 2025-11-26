@@ -11,7 +11,7 @@ export default function DashboardPage() {
     const firestore = useFirestore();
     const { user, isUserLoading } = useUser();
 
-    // Seed data for demonstration
+    // Seed data for demonstration - only runs when a user is available
     useEffect(() => {
         if (firestore && user) {
         // Seed homework
@@ -21,12 +21,15 @@ export default function DashboardPage() {
         });
         // Seed users
         leaderboardData.forEach(student => {
-            const userRef = doc(firestore, 'users', student.id);
-            setDocumentNonBlocking(userRef, student, { merge: true });
+            // Don't overwrite the current user's document if it's in the seed data
+            if (student.id !== user.uid) {
+                const userRef = doc(firestore, 'users', student.id);
+                setDocumentNonBlocking(userRef, student, { merge: true });
+            }
         });
-         // Seed current books for main student
-        const currentBooksRef = doc(firestore, 'users', mainStudent.id, 'currentBooks', 'initial-books');
-        setDocumentNonBlocking(currentBooksRef, { studentId: mainStudent.id, id: 'initial-books', bookIds: ['Math Textbook', 'History Textbook', 'Laptop'] }, { merge: true });
+         // Seed current books for main student, but tied to the current user
+        const currentBooksRef = doc(firestore, 'users', user.uid, 'currentBooks', 'initial-books');
+        setDocumentNonBlocking(currentBooksRef, { studentId: user.uid, id: 'initial-books', bookIds: ['Math Textbook', 'History Textbook', 'Laptop'] }, { merge: true });
 
         }
     }, [firestore, user]);
@@ -48,6 +51,15 @@ export default function DashboardPage() {
         return query(collection(firestore, 'users'));
     }, [firestore]);
     const { data: leaderboard, isLoading: isLeaderboardLoading } = useCollection<Student>(leaderboardQuery);
+    
+    // Create the student doc for the anonymous user if it doesn't exist.
+    useEffect(() => {
+        if (!isStudentLoading && !student && user && firestore) {
+          const userRef = doc(firestore, 'users', user.uid);
+          const newStudent = { ...mainStudent, id: user.uid, email: user.email || 'anonymous@example.com', name: 'Anonymous Panda' };
+          setDocumentNonBlocking(userRef, newStudent, { merge: true });
+        }
+    }, [isStudentLoading, student, user, firestore]);
 
     if (isUserLoading || isStudentLoading || isHomeworkLoading || isLeaderboardLoading) {
         return <div>Loading...</div>;
@@ -59,15 +71,7 @@ export default function DashboardPage() {
         .map((s, index) => ({ ...s, rank: index + 1 }))
     : [];
     
-    // If there is no student data, use the mainStudent and try to set it.
-    // This will create the user doc for the anonymous user.
-    if (!student && user && firestore) {
-      const userRef = doc(firestore, 'users', user.uid);
-      const newStudent = { ...mainStudent, id: user.uid, email: user.email || 'anonymous@example.com' };
-      setDocumentNonBlocking(userRef, newStudent, { merge: true });
-    }
-
-    const currentStudent = student || { ...mainStudent, id: user?.uid || mainStudent.id };
+    const currentStudent = student || { ...mainStudent, id: user?.uid || mainStudent.id, name: "Anonymous Panda" };
 
   return (
     <DashboardClient
