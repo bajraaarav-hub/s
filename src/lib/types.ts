@@ -13,6 +13,11 @@ export type Homework = {
   requiredBooks: string[];
 };
 
+export type CurrentBooks = {
+  id: string;
+  bookIds: string[];
+}
+
 export type AttendanceRecord = {
   date: string;
   status: 'present' | 'absent';

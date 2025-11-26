@@ -5,33 +5,54 @@ import {Button} from '@/components/ui/button';
 import {Card, CardContent, CardDescription, CardHeader, CardTitle} from '@/components/ui/card';
 import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue} from '@/components/ui/select';
 import {useToast} from '@/hooks/use-toast';
-import type {Homework, Student} from '@/lib/types';
+import type {Homework, Student, CurrentBooks} from '@/lib/types';
 import {CheckCircle2, CircleDashed, ListTodo, Loader2, Package, Sparkles, XCircle} from 'lucide-react';
-import {useState, useTransition} from 'react';
+import {useState, useTransition, useEffect} from 'react';
 import {Badge} from './ui/badge';
 import {Progress} from './ui/progress';
-import {CodeBlock} from './code-block';
+import { useUser, useFirestore, useCollection, useMemoFirebase, updateDocumentNonBlocking } from '@/firebase';
+import { collection, query, doc } from 'firebase/firestore';
 
 export function BackpackChecker({
   student,
   allHomework,
-  initialBackpackContents,
 }: {
   student: Student;
   allHomework: Homework[];
-  initialBackpackContents: string[];
 }) {
-  const [selectedHomeworkId, setSelectedHomeworkId] = useState<string>(allHomework[0].id);
+  const [selectedHomeworkId, setSelectedHomeworkId] = useState<string>(allHomework[0]?.id);
   const [analysisResult, setAnalysisResult] = useState<SmartBookRequirementAnalysisOutput | null>(null);
   const [isPending, startTransition] = useTransition();
   const {toast} = useToast();
 
+  const firestore = useFirestore();
+  const { user } = useUser();
+
   const [currentPoints, setCurrentPoints] = useState(student.points);
   const [currentStreak, setCurrentStreak] = useState(student.streak);
+
+  const currentBooksQuery = useMemoFirebase(() => {
+    if (!firestore || !user) return null;
+    return query(collection(firestore, 'users', user.uid, 'currentBooks'));
+  }, [firestore, user]);
+
+  const { data: currentBooksData, isLoading: isBooksLoading } = useCollection<CurrentBooks>(currentBooksQuery);
+  const initialBackpackContents = currentBooksData?.[0]?.bookIds || [];
+
+  useEffect(() => {
+    if(student) {
+      setCurrentPoints(student.points);
+      setCurrentStreak(student.streak);
+    }
+  }, [student])
 
   const selectedHomework = allHomework.find(h => h.id === selectedHomeworkId)!;
 
   const handleCheckBooks = () => {
+    if (!user) {
+        toast({ title: "Error", description: "You must be logged in.", variant: "destructive" });
+        return;
+    }
     startTransition(async () => {
       setAnalysisResult(null);
       try {
@@ -40,17 +61,24 @@ export function BackpackChecker({
           requiredBooks: selectedHomework.requiredBooks,
         });
         setAnalysisResult(result);
+        
+        const userRef = doc(firestore, 'users', user.uid);
 
         if (result.status === 'complete') {
-          setCurrentPoints(prev => prev + 10);
-          setCurrentStreak(prev => prev + 1);
+          const newPoints = currentPoints + 10;
+          const newStreak = currentStreak + 1;
+          setCurrentPoints(newPoints);
+          setCurrentStreak(newStreak);
+          updateDocumentNonBlocking(userRef, { points: newPoints, streak: newStreak });
           toast({
             title: 'Great job!',
             description: 'You earned 10 points & increased your streak.',
             variant: 'default',
           });
         } else {
-          setCurrentStreak(0);
+          const newStreak = 0;
+          setCurrentStreak(newStreak);
+          updateDocumentNonBlocking(userRef, { streak: newStreak });
           toast({
             title: 'Missing books!',
             description: 'Your streak has been reset to 0.',
@@ -73,6 +101,11 @@ export function BackpackChecker({
     if (analysisResult.status === 'complete') return <CheckCircle2 className="h-12 w-12 text-accent" />;
     return <XCircle className="h-12 w-12 text-destructive" />;
   };
+  
+  if (!selectedHomeworkId && allHomework.length > 0) {
+    setSelectedHomeworkId(allHomework[0].id);
+  }
+
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -82,7 +115,7 @@ export function BackpackChecker({
             <CardTitle>1. Select Homework</CardTitle>
           </CardHeader>
           <CardContent>
-            <Select onValueChange={setSelectedHomeworkId} defaultValue={selectedHomeworkId}>
+            <Select onValueChange={setSelectedHomeworkId} value={selectedHomeworkId}>
               <SelectTrigger className="w-full">
                 <SelectValue placeholder="Select a homework assignment" />
               </SelectTrigger>
@@ -104,17 +137,19 @@ export function BackpackChecker({
                 <Package className="text-primary" />
                 Your Backpack
               </CardTitle>
-              <CardDescription>Simulated RFID scan of your bag.</CardDescription>
+              <CardDescription>Items currently in your bag.</CardDescription>
             </CardHeader>
             <CardContent>
-              <ul className="space-y-2">
-                {initialBackpackContents.map(book => (
-                  <li key={book} className="flex items-center gap-2">
-                    <CheckCircle2 className="h-4 w-4 text-accent" />
-                    <span>{book}</span>
-                  </li>
-                ))}
-              </ul>
+              {isBooksLoading ? <Loader2 className="animate-spin" /> :
+                <ul className="space-y-2">
+                  {initialBackpackContents.map(book => (
+                    <li key={book} className="flex items-center gap-2">
+                      <CheckCircle2 className="h-4 w-4 text-accent" />
+                      <span>{book}</span>
+                    </li>
+                  ))}
+                </ul>
+              }
             </CardContent>
           </Card>
           <Card>
@@ -126,19 +161,19 @@ export function BackpackChecker({
               <CardDescription>Books needed for the selected homework.</CardDescription>
             </CardHeader>
             <CardContent>
-              <ul className="space-y-2">
+              {selectedHomework && <ul className="space-y-2">
                 {selectedHomework.requiredBooks.map(book => (
                   <li key={book} className="flex items-center gap-2">
                     <span className="font-medium text-primary">*</span>
                     <span>{book}</span>
                   </li>
                 ))}
-              </ul>
+              </ul>}
             </CardContent>
           </Card>
         </div>
 
-        <Button onClick={handleCheckBooks} disabled={isPending} className="w-full">
+        <Button onClick={handleCheckBooks} disabled={isPending || !selectedHomework} className="w-full">
           {isPending ? (
             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
           ) : (
@@ -185,17 +220,6 @@ export function BackpackChecker({
             <p className="text-xs text-muted-foreground text-center">Complete daily checks to extend your streak!</p>
           </CardContent>
         </Card>
-        {analysisResult && (
-          <Card>
-            <CardHeader>
-              <CardTitle>AI Output</CardTitle>
-              <CardDescription>The raw JSON output from the AI model.</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <CodeBlock code={JSON.stringify(analysisResult, null, 2)} />
-            </CardContent>
-          </Card>
-        )}
       </div>
     </div>
   );

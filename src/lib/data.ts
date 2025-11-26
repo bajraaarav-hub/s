@@ -8,18 +8,6 @@ export const mainStudent: Student = {
   avatarUrl: 'https://picsum.photos/seed/101/100/100',
 };
 
-// Data structured to simulate reading from an Excel sheet/CSV
-// [Homework ID, Title, Required Book 1, Required Book 2, ...]
-export const homeworkSheet: string[][] = [
-  ['hw-01', 'Math & English Homework', 'Math Textbook', 'English Notebook', 'Science Workbook'],
-  ['hw-02', 'History Project', 'History Textbook', 'World Atlas'],
-];
-
-// Data structured to simulate reading from an Excel sheet/CSV for backpack contents
-// [Item Name]
-export const backpackSheet: string[][] = [['Math Textbook'], ['History Textbook'], ['Laptop']];
-
-
 export const homeworkAssignments: Homework[] = [
   {
     id: 'hw-01',

@@ -5,6 +5,7 @@ import {MobileHeader} from '@/components/mobile-header';
 import {SidebarProvider, SidebarInset} from '@/components/ui/sidebar';
 import {Toaster} from '@/components/ui/toaster';
 import {cn} from '@/lib/utils';
+import { FirebaseClientProvider } from '@/firebase/client-provider';
 
 export const metadata: Metadata = {
   title: 'SmartBackpack Pro',
@@ -27,13 +28,15 @@ export default function RootLayout({
         />
       </head>
       <body className={cn('font-body antialiased min-h-screen bg-background')}>
-        <SidebarProvider>
-          <AppSidebar />
-          <SidebarInset>
-            <MobileHeader />
-            <main className="p-4 sm:p-6 lg:p-8">{children}</main>
-          </SidebarInset>
-        </SidebarProvider>
+        <FirebaseClientProvider>
+          <SidebarProvider>
+            <AppSidebar />
+            <SidebarInset>
+              <MobileHeader />
+              <main className="p-4 sm:p-6 lg:p-8">{children}</main>
+            </SidebarInset>
+          </SidebarProvider>
+        </FirebaseClientProvider>
         <Toaster />
       </body>
     </html>
