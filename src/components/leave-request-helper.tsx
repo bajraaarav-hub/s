@@ -25,8 +25,9 @@ const formSchema = z
     }),
     reason: z.string().min(10, {message: 'Reason must be at least 10 characters.'}),
   })
-  .refine(data => data.dateRange.from, {
+  .refine(data => !!data.dateRange.from, {
     message: 'Start date is required.',
+    path: ['dateRange'],
   });
 
 export function LeaveRequestHelper({
@@ -46,6 +47,13 @@ export function LeaveRequestHelper({
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
+    defaultValues: {
+      reason: '',
+      dateRange: {
+        from: undefined,
+        to: undefined,
+      },
+    },
   });
 
   function onSubmit(values: z.infer<typeof formSchema>) {
@@ -104,7 +112,7 @@ export function LeaveRequestHelper({
                         <FormControl>
                           <Button
                             variant={'outline'}
-                            className={cn('w-full pl-3 text-left font-normal', !field.value.from && 'text-muted-foreground')}
+                            className={cn('w-full pl-3 text-left font-normal', !field.value?.from && 'text-muted-foreground')}
                           >
                             {field.value?.from ? (
                               field.value.to ? (
@@ -126,7 +134,7 @@ export function LeaveRequestHelper({
                           initialFocus
                           mode="range"
                           defaultMonth={field.value?.from}
-                          selected={{from: field.value.from, to: field.value.to}}
+                          selected={field.value}
                           onSelect={field.onChange}
                           numberOfMonths={2}
                         />
