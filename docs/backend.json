@@ -1,0 +1,436 @@
+{
+  "entities": {
+    "User": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "User",
+      "type": "object",
+      "description": "Represents a user in the SmartBackpack Pro application.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the user entity."
+        },
+        "name": {
+          "type": "string",
+          "description": "The user's full name."
+        },
+        "email": {
+          "type": "string",
+          "description": "The user's email address.",
+          "format": "email"
+        },
+        "points": {
+          "type": "number",
+          "description": "The user's current points in the reward system."
+        },
+        "streak": {
+          "type": "number",
+          "description": "The user's current streak in the reward system."
+        },
+        "rank": {
+          "type": "number",
+          "description": "The user's rank on the leaderboard."
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "email"
+      ]
+    },
+    "Book": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Book",
+      "type": "object",
+      "description": "Represents a book, either required or detected.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the book."
+        },
+        "title": {
+          "type": "string",
+          "description": "The title of the book."
+        },
+        "author": {
+          "type": "string",
+          "description": "The author of the book."
+        }
+      },
+      "required": [
+        "id",
+        "title",
+        "author"
+      ]
+    },
+    "Homework": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Homework",
+      "type": "object",
+      "description": "Represents a homework assignment with required books.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the homework assignment."
+        },
+        "requiredBookIds": {
+          "type": "array",
+          "description": "References to Books required for the homework assignment. (Relationship: Homework 1:N Book)",
+          "items": {
+            "type": "string"
+          }
+        },
+        "dueDate": {
+          "type": "string",
+          "description": "The due date for the homework assignment.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "requiredBookIds",
+        "dueDate"
+      ]
+    },
+    "Attendance": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Attendance",
+      "type": "object",
+      "description": "Represents a student's attendance record for a specific date.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the attendance record."
+        },
+        "studentId": {
+          "type": "string",
+          "description": "Reference to User. (Relationship: User 1:N Attendance)"
+        },
+        "date": {
+          "type": "string",
+          "description": "The date of the attendance record.",
+          "format": "date-time"
+        },
+        "status": {
+          "type": "string",
+          "description": "The attendance status (e.g., present, absent)."
+        }
+      },
+      "required": [
+        "id",
+        "studentId",
+        "date",
+        "status"
+      ]
+    },
+    "LeaveRequest": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "LeaveRequest",
+      "type": "object",
+      "description": "Represents a student's request for leave.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the leave request."
+        },
+        "studentId": {
+          "type": "string",
+          "description": "Reference to User. (Relationship: User 1:N LeaveRequest)"
+        },
+        "startDate": {
+          "type": "string",
+          "description": "The start date of the leave.",
+          "format": "date-time"
+        },
+        "endDate": {
+          "type": "string",
+          "description": "The end date of the leave.",
+          "format": "date-time"
+        },
+        "reason": {
+          "type": "string",
+          "description": "The reason for the leave request."
+        },
+        "summary": {
+          "type": "string",
+          "description": "AI-generated summary of the leave request."
+        },
+        "riskScore": {
+          "type": "number",
+          "description": "AI-generated risk score for the leave request."
+        }
+      },
+      "required": [
+        "id",
+        "studentId",
+        "startDate",
+        "endDate",
+        "reason"
+      ]
+    },
+    "AiAnalysis": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "AiAnalysis",
+      "type": "object",
+      "description": "Represents the AI analysis results for a specific user and date.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the AI analysis record."
+        },
+        "studentId": {
+          "type": "string",
+          "description": "Reference to User. (Relationship: User 1:N AiAnalysis)"
+        },
+        "date": {
+          "type": "string",
+          "description": "The date of the AI analysis.",
+          "format": "date-time"
+        },
+        "missingBooks": {
+          "type": "array",
+          "description": "An array of Book IDs that are missing.",
+          "items": {
+            "type": "string"
+          }
+        },
+        "status": {
+          "type": "string",
+          "description": "The status of the book check (e.g., complete, incomplete)."
+        },
+        "message": {
+          "type": "string",
+          "description": "A message describing the results of the AI analysis."
+        }
+      },
+      "required": [
+        "id",
+        "studentId",
+        "date"
+      ]
+    },
+    "Leaderboard": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Leaderboard",
+      "type": "object",
+      "description": "Represents the leaderboard data.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Leaderboard record."
+        },
+        "studentId": {
+          "type": "string",
+          "description": "Reference to User. (Relationship: User 1:1 Leaderboard)"
+        },
+        "name": {
+          "type": "string",
+          "description": "The student's name."
+        },
+        "points": {
+          "type": "number",
+          "description": "The student's total points."
+        },
+        "streak": {
+          "type": "number",
+          "description": "The student's current streak."
+        },
+        "rank": {
+          "type": "number",
+          "description": "The student's rank on the leaderboard."
+        }
+      },
+      "required": [
+        "id",
+        "studentId",
+        "name",
+        "points",
+        "streak",
+        "rank"
+      ]
+    },
+    "CurrentBooks": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "CurrentBooks",
+      "type": "object",
+      "description": "Represents the user's current detected books",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique Identifier for the current books"
+        },
+        "studentId": {
+          "type": "string",
+          "description": "Reference to User. (Relationship: User 1:N CurrentBooks)"
+        },
+        "bookIds": {
+          "type": "array",
+          "description": "References to Book. (Relationship: CurrentBooks 1:N Book)",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "id",
+        "studentId",
+        "bookIds"
+      ]
+    }
+  },
+  "auth": {
+    "providers": [
+      "password",
+      "anonymous"
+    ]
+  },
+  "firestore": {
+    "structure": [
+      {
+        "path": "/users/{userId}",
+        "definition": {
+          "entityName": "User",
+          "schema": {
+            "$ref": "#/backend/entities/User"
+          },
+          "description": "Stores user profile data.  Owned by the user with id `userId`.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier of the user."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/books/{bookId}",
+        "definition": {
+          "entityName": "Book",
+          "schema": {
+            "$ref": "#/backend/entities/Book"
+          },
+          "description": "Stores book data.",
+          "params": [
+            {
+              "name": "bookId",
+              "description": "The unique identifier of the book."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/homework/{homeworkId}",
+        "definition": {
+          "entityName": "Homework",
+          "schema": {
+            "$ref": "#/backend/entities/Homework"
+          },
+          "description": "Stores homework assignment data.",
+          "params": [
+            {
+              "name": "homeworkId",
+              "description": "The unique identifier for the homework assignment."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/attendance/{attendanceId}",
+        "definition": {
+          "entityName": "Attendance",
+          "schema": {
+            "$ref": "#/backend/entities/Attendance"
+          },
+          "description": "Stores attendance records for a user. Owned by the user with id `userId`.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier of the user."
+            },
+            {
+              "name": "attendanceId",
+              "description": "The unique identifier of the attendance record."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/leaveRequests/{leaveRequestId}",
+        "definition": {
+          "entityName": "LeaveRequest",
+          "schema": {
+            "$ref": "#/backend/entities/LeaveRequest"
+          },
+          "description": "Stores leave requests for a user. Owned by the user with id `userId`.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier of the user."
+            },
+            {
+              "name": "leaveRequestId",
+              "description": "The unique identifier of the leave request."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/aiAnalysis/{aiAnalysisId}",
+        "definition": {
+          "entityName": "AiAnalysis",
+          "schema": {
+            "$ref": "#/backend/entities/AiAnalysis"
+          },
+          "description": "Stores AI analysis results for a user. Owned by the user with id `userId`.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier of the user."
+            },
+            {
+              "name": "aiAnalysisId",
+              "description": "The unique identifier of the AI analysis record."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/leaderboard/{leaderboardId}",
+        "definition": {
+          "entityName": "Leaderboard",
+          "schema": {
+            "$ref": "#/backend/entities/Leaderboard"
+          },
+          "description": "Stores leaderboard data.",
+          "params": [
+            {
+              "name": "leaderboardId",
+              "description": "The unique identifier for the leaderboard entry."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/currentBooks/{currentBooksId}",
+        "definition": {
+          "entityName": "CurrentBooks",
+          "schema": {
+            "$ref": "#/backend/entities/CurrentBooks"
+          },
+          "description": "Stores the current books detected for a user. Owned by the user with id `userId`.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier of the user."
+            },
+            {
+              "name": "currentBooksId",
+              "description": "The unique identifier for the current books record."
+            }
+          ]
+        }
+      }
+    ],
+    "reasoning": "The Firestore structure is designed to support the SmartBackpack Pro application, emphasizing authorization independence, clarity, and scalability. User-specific data is stored under `/users/{userId}`. Homework assignments, books, attendance, leave requests, AI analysis results, leaderboard data, and current books are structured to ensure easy data retrieval and maintainability. The structure incorporates denormalization to avoid `get()` calls in security rules and enable atomic operations.\n\n**Authorization Independence and QAPs:**\n\n*   **User Data:** User profiles are stored directly under `/users/{userId}`, ensuring that access control is based solely on the authenticated user's ID.\n*   **Books:** Book information is stored at the root level in a `/books` collection. While not user-specific, this segregation ensures a homogeneous security posture.\n*   **Homework:** Homework assignments are stored in a `/homework` collection, enabling straightforward querying and management.\n*   **Attendance, Leave Requests, AI Analysis, CurrentBooks:** These are subcollections under `/users/{userId}`, enforcing ownership and simplifying security rules. This supports QAPs by ensuring that only the user (or admin with appropriate roles - which aren't defined here but would be in separate collections) can access this data.\n*   **Leaderboard:** Stored at the root level in a `/leaderboard` collection. Leaderboard entries include a `studentId` field, which, while not directly used for authorization in rules due to the collection's global nature, facilitates efficient querying for leaderboard data.\n\nThis structure avoids hierarchical authorization dependencies (`get()`) by denormalizing authorization context where necessary. Security rules can be written based solely on the path and `request.auth.uid`, without needing to fetch data from parent documents. The separation of data into distinct collections and subcollections ensures a homogeneous security posture, simplifying security rules and preventing unintended access. The design supports secure `list` operations (QAPs) by structuring data to align with access control requirements."
+  }
+}
