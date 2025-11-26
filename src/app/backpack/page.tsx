@@ -1,13 +1,12 @@
 'use client';
 
 import { BackpackChecker } from '@/components/backpack-checker';
-import { useCollection, useUser, useFirestore, useMemoFirebase } from '@/firebase';
+import { useCollection, useUser, useFirestore, useMemoFirebase, useDoc } from '@/firebase';
 import { Homework, Student } from '@/lib/types';
-import { collection, query } from 'firebase/firestore';
+import { collection, query, doc } from 'firebase/firestore';
 import { useEffect } from 'react';
-import { setDocumentNonBlocking, addDocumentNonBlocking } from '@/firebase';
-import { doc } from 'firebase/firestore';
-import { mainStudent, homeworkAssignments as mockHomework, leaderboardData } from '@/lib/data'; // for seeding
+import { setDocumentNonBlocking } from '@/firebase/non-blocking-updates';
+import { homeworkAssignments as mockHomework, leaderboardData } from '@/lib/data';
 
 export default function BackpackPage() {
   const firestore = useFirestore();
@@ -19,11 +18,11 @@ export default function BackpackPage() {
   }, [firestore]);
   const { data: allHomework, isLoading: isHomeworkLoading } = useCollection<Homework>(homeworkQuery);
 
-  const studentQuery = useMemoFirebase(() => {
+  const studentDocRef = useMemoFirebase(() => {
     if (!firestore || !user) return null;
     return doc(firestore, 'users', user.uid);
   }, [firestore, user]);
-  const { data: studentData, isLoading: isStudentLoading } = useCollection<Student>(studentQuery as any);
+  const { data: studentData, isLoading: isStudentLoading } = useDoc<Student>(studentDocRef);
 
   // Seed data for demonstration
   useEffect(() => {
@@ -46,10 +45,11 @@ export default function BackpackPage() {
     return <div>Loading...</div>;
   }
 
-  // In a real app, you'd likely have a way to identify the current student.
-  // For now, we'll continue to use a primary student for demo purposes,
-  // but we'll use the authenticated user's data if available.
-  const currentStudent = studentData?.[0] || mainStudent;
+  const currentStudent = studentData;
+
+  if (!currentStudent || !allHomework) {
+    return <div>Loading student data...</div>
+  }
 
   return (
     <div className="space-y-8">

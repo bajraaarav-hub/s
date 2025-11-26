@@ -10,8 +10,9 @@ import {CheckCircle2, CircleDashed, ListTodo, Loader2, Package, Sparkles, XCircl
 import {useState, useTransition, useEffect} from 'react';
 import {Badge} from './ui/badge';
 import {Progress} from './ui/progress';
-import { useUser, useFirestore, useCollection, useMemoFirebase, updateDocumentNonBlocking } from '@/firebase';
+import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, query, doc } from 'firebase/firestore';
+import { updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 
 export function BackpackChecker({
   student,
@@ -20,7 +21,7 @@ export function BackpackChecker({
   student: Student;
   allHomework: Homework[];
 }) {
-  const [selectedHomeworkId, setSelectedHomeworkId] = useState<string>(allHomework[0]?.id);
+  const [selectedHomeworkId, setSelectedHomeworkId] = useState<string | undefined>(allHomework[0]?.id);
   const [analysisResult, setAnalysisResult] = useState<SmartBookRequirementAnalysisOutput | null>(null);
   const [isPending, startTransition] = useTransition();
   const {toast} = useToast();
@@ -45,12 +46,18 @@ export function BackpackChecker({
       setCurrentStreak(student.streak);
     }
   }, [student])
+  
+  useEffect(() => {
+    if (!selectedHomeworkId && allHomework.length > 0) {
+      setSelectedHomeworkId(allHomework[0].id);
+    }
+  }, [allHomework, selectedHomeworkId]);
 
-  const selectedHomework = allHomework.find(h => h.id === selectedHomeworkId)!;
+  const selectedHomework = allHomework.find(h => h.id === selectedHomeworkId);
 
   const handleCheckBooks = () => {
-    if (!user) {
-        toast({ title: "Error", description: "You must be logged in.", variant: "destructive" });
+    if (!user || !selectedHomework) {
+        toast({ title: "Error", description: "User or homework not loaded.", variant: "destructive" });
         return;
     }
     startTransition(async () => {

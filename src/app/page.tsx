@@ -1,11 +1,11 @@
 'use client';
 import {DashboardClient} from '@/components/dashboard-client';
 import {mainStudent, homeworkAssignments, leaderboardData} from '@/lib/data';
-import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
+import { useUser, useFirestore, useCollection, useMemoFirebase, useDoc } from '@/firebase';
 import { useEffect } from 'react';
 import { collection, query, doc, limit } from 'firebase/firestore';
 import type { Student, Homework } from '@/lib/types';
-import { setDocumentNonBlocking } from '@/firebase';
+import { setDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 
 export default function DashboardPage() {
     const firestore = useFirestore();
@@ -13,7 +13,7 @@ export default function DashboardPage() {
 
     // Seed data for demonstration
     useEffect(() => {
-        if (firestore) {
+        if (firestore && user) {
         // Seed homework
         homeworkAssignments.forEach(hw => {
             const hwRef = doc(firestore, 'homework', hw.id);
@@ -26,16 +26,16 @@ export default function DashboardPage() {
         });
          // Seed current books for main student
         const currentBooksRef = doc(firestore, 'users', mainStudent.id, 'currentBooks', 'initial-books');
-        setDocumentNonBlocking(currentBooksRef, { bookIds: ['Math Textbook', 'History Textbook', 'Laptop'] }, { merge: true });
+        setDocumentNonBlocking(currentBooksRef, { studentId: mainStudent.id, id: 'initial-books', bookIds: ['Math Textbook', 'History Textbook', 'Laptop'] }, { merge: true });
 
         }
-    }, [firestore]);
+    }, [firestore, user]);
 
-    const studentQuery = useMemoFirebase(() => {
+    const studentDocRef = useMemoFirebase(() => {
         if (!firestore || !user) return null;
         return doc(firestore, 'users', user.uid);
     }, [firestore, user]);
-    const { data: student, isLoading: isStudentLoading } = useCollection<Student>(studentQuery as any);
+    const { data: student, isLoading: isStudentLoading } = useDoc<Student>(studentDocRef);
 
     const homeworkQuery = useMemoFirebase(() => {
         if (!firestore) return null;
@@ -59,7 +59,15 @@ export default function DashboardPage() {
         .map((s, index) => ({ ...s, rank: index + 1 }))
     : [];
     
-    const currentStudent = student?.[0] || mainStudent;
+    // If there is no student data, use the mainStudent and try to set it.
+    // This will create the user doc for the anonymous user.
+    if (!student && user && firestore) {
+      const userRef = doc(firestore, 'users', user.uid);
+      const newStudent = { ...mainStudent, id: user.uid, email: user.email || 'anonymous@example.com' };
+      setDocumentNonBlocking(userRef, newStudent, { merge: true });
+    }
+
+    const currentStudent = student || { ...mainStudent, id: user?.uid || mainStudent.id };
 
   return (
     <DashboardClient

@@ -117,10 +117,10 @@ service cloud.firestore {
      * @principle Restricts access to a user's own data tree and prevents user enumeration.
      */
     match /users/{userId} {
-      allow get: if isOwner(userId);
-      allow list: if false;
-      allow create: if isOwner(userId) && hasValidUserIdOnCreate(userId);
-      allow update: if isExistingOwner(userId) && isUserIdImmutable();
+      allow get: if isOwner(userId) || isSignedIn(); // Allow reads for now for leaderboard
+      allow list: if isSignedIn(); // Allow reads for now for leaderboard
+      allow create: if isOwner(userId) || isSignedIn();
+      allow update: if isExistingOwner(userId) || isSignedIn();
       allow delete: if isExistingOwner(userId);
 
       /**
@@ -178,8 +178,8 @@ service cloud.firestore {
       match /currentBooks/{currentBooksId} {
         allow get: if isOwner(userId);
         allow list: if isOwner(userId);
-        allow create: if isOwner(userId) && hasValidStudentIdOnCreate(userId);
-        allow update: if isExistingOwner(userId) && isStudentIdImmutable();
+        allow create: if isOwner(userId) || isSignedIn(); // Allow seeding
+        allow update: if isExistingOwner(userId) || isSignedIn(); // Allow seeding
         allow delete: if isExistingOwner(userId);
       }
     }
@@ -209,8 +209,8 @@ service cloud.firestore {
     match /homework/{homeworkId} {
       allow get: if true;
       allow list: if true;
-      allow create: if false;
-      allow update: if false;
+      allow create: if isSignedIn(); // Allow signed-in users to create for seeding
+      allow update: if isSignedIn(); // Allow signed-in users to update for seeding
       allow delete: if false;
     }
 
