@@ -201,10 +201,6 @@ export function LeaveRequestHelper({
                 <h4 className="font-semibold">AI Summary:</h4>
                 <p className="text-sm text-muted-foreground italic">"{analysisResult.summary}"</p>
               </div>
-              <div className="pt-4">
-                <h4 className="font-semibold font-code text-sm mb-2">AI Output JSON:</h4>
-                <CodeBlock code={JSON.stringify(analysisResult, null, 2)} />
-              </div>
             </div>
           )}
         </CardContent>
