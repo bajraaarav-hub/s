@@ -51,9 +51,9 @@ export default function LeaveApprovalPage() {
 
   const leaveRequestsQuery = useMemoFirebase(() => {
     // Wait until we confirm the user is a teacher before making the query
-    if (!firestore || !teacher || teacher.role !== 'teacher') return null;
+    if (!firestore || isTeacherLoading || !teacher || teacher.role !== 'teacher') return null;
     return query(collectionGroup(firestore, 'leaveRequests'), where('status', '==', 'pending'));
-  }, [firestore, teacher]);
+  }, [firestore, teacher, isTeacherLoading]);
 
   const {data: leaveRequests, isLoading: areRequestsLoading} = useCollection<LeaveRequest>(leaveRequestsQuery);
 
@@ -97,7 +97,7 @@ export default function LeaveApprovalPage() {
     return <div>Loading access permissions...</div>;
   }
   
-  if (teacher?.role !== 'teacher') {
+  if (!isTeacherLoading && teacher?.role !== 'teacher') {
       return <div>You do not have permission to view this page.</div>
   }
 
