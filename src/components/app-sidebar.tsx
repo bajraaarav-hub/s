@@ -13,7 +13,7 @@ import {
 } from '@/components/ui/sidebar';
 import { ThemeSwitcher } from './theme-switcher';
 import { useUser, useDoc, useFirestore, useMemoFirebase, useAuth } from '@/firebase';
-import { doc, signOut } from 'firebase/firestore';
+import { doc } from 'firebase/firestore';
 import type { Student } from '@/lib/types';
 import { Button } from './ui/button';
 import { useToast } from '@/hooks/use-toast';
@@ -33,7 +33,7 @@ const teacherNavItems = [
 
 export function AppSidebar() {
   const pathname = usePathname();
-  const { user } = useUser();
+  const { user, isUserLoading } = useUser();
   const firestore = useFirestore();
   const auth = useAuth();
   const router = useRouter();
@@ -41,12 +41,15 @@ export function AppSidebar() {
 
 
   const userDocRef = useMemoFirebase(() => {
-    if (!firestore || !user) return null;
+    // Only create the doc ref if the user is fully loaded and exists
+    if (!firestore || isUserLoading || !user) return null;
     return doc(firestore, 'users', user.uid);
-  }, [firestore, user]);
-  const { data: userData } = useDoc<Student>(userDocRef);
+  }, [firestore, user, isUserLoading]);
 
-  const navItems = userData?.role === 'teacher' ? teacherNavItems : studentNavItems;
+  const { data: userData, isLoading: isUserDocLoading } = useDoc<Student>(userDocRef);
+
+  // Default to student nav while user data is loading
+  const navItems = !isUserDocLoading && userData?.role === 'teacher' ? teacherNavItems : studentNavItems;
 
   const handleLogout = async () => {
     if (!auth) return;
