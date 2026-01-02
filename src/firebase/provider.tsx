@@ -103,6 +103,13 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
     };
   }, [firebaseApp, firestore, auth, userAuthState]);
 
+  // CRITICAL FIX: Do not render children until the initial auth check is complete.
+  // This prevents any child component from attempting to use Firebase services
+  // before the user's auth state is known, which is the root cause of the race condition.
+  if (contextValue.isUserLoading) {
+    return null; // or a global loading spinner
+  }
+
   return (
     <FirebaseContext.Provider value={contextValue}>
       <FirebaseErrorListener />
