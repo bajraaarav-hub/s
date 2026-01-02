@@ -62,7 +62,7 @@ service cloud.firestore {
      * This function checks the user's profile document in the /users collection.
      */
     function isTeacher() {
-      return isSignedIn() && exists(/databases/$(database)/documents/users/$(request.auth.uid)) && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'teacher';
+      return isSignedIn() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'teacher';
     }
 
     /**
@@ -124,25 +124,26 @@ service cloud.firestore {
      * @principle Restricts access to a user's own data tree and prevents user enumeration.
      */
     match /users/{userId} {
-      allow get: if isOwner(userId) || isSignedIn(); // Allow reads for now for leaderboard
-      allow list: if isSignedIn(); // Allow reads for now for leaderboard
+      allow get: if isOwner(userId) || isTeacher();
+      allow list: if isTeacher();
       allow create: if isOwner(userId) || isSignedIn();
       allow update: if isExistingOwner(userId) || isSignedIn();
       allow delete: if isExistingOwner(userId);
     }
 
     /**
-     * @description A user can manage their own leave requests.
+     * @description A student can manage their own leave requests. A teacher can read all leave requests and update their status.
      * @path /users/{userId}/leaveRequests/{leaveRequestId}
      * @allow (get) An authenticated user reading their own leave request: `auth.uid == 'user_123'`, `get /users/user_123/leaveRequests/req_abc`
+     * @allow (list) A teacher listing all leave requests.
      * @deny (update) Another user trying to update a leave request: `auth.uid == 'user_456'`, `update /users/user_123/leaveRequests/req_abc`
-     * @principle Enforces document ownership within a user's private subcollection.
+     * @principle Enforces document ownership for students and grants broader access to teachers.
      */
     match /users/{userId}/leaveRequests/{leaveRequestId} {
-      allow get: if isOwner(userId);
-      allow list: if isOwner(userId);
+      allow get: if isOwner(userId) || isTeacher();
+      allow list: if isOwner(userId) || isTeacher();
       allow create: if isOwner(userId) && hasValidStudentIdOnCreate(userId);
-      allow update: if isExistingOwner(userId) && isStudentIdImmutable();
+      allow update: if (isExistingOwner(userId) && isStudentIdImmutable()) || isTeacher();
       allow delete: if isExistingOwner(userId);
     }
 

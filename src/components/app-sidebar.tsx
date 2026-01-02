@@ -1,7 +1,7 @@
 'use client';
 import Link from 'next/link';
 import {usePathname, useRouter} from 'next/navigation';
-import {Backpack, BarChart3, BookOpenCheck, Home, LogOut, ThumbsUp} from 'lucide-react';
+import {Backpack, BarChart3, BookOpenCheck, Home, LogOut, ShieldCheck, ThumbsUp} from 'lucide-react';
 import {
   Sidebar,
   SidebarContent,
@@ -19,19 +19,32 @@ import { Button } from './ui/button';
 import { useToast } from '@/hooks/use-toast';
 
 
-const navItems = [
+const studentNavItems = [
   {href: '/', icon: Home, label: 'Dashboard'},
   {href: '/backpack', icon: BookOpenCheck, label: 'Book Check'},
   {href: '/leave-requests', icon: ThumbsUp, label: 'Leave Requests'},
   {href: '/leaderboard', icon: BarChart3, label: 'Leaderboard'},
 ];
 
+const teacherNavItems = [
+    {href: '/', icon: Home, label: 'Dashboard'},
+    {href: '/leave-approval', icon: ShieldCheck, label: 'Leave Approval'},
+    {href: '/leaderboard', icon: BarChart3, label: 'Leaderboard'},
+]
+
 export function AppSidebar() {
   const pathname = usePathname();
   const { user, isUserLoading } = useUser();
   const auth = useAuth();
+  const firestore = useFirestore();
   const router = useRouter();
   const { toast } = useToast();
+
+  const userDocRef = useMemoFirebase(() => {
+    if (!firestore || !user) return null;
+    return doc(firestore, 'users', user.uid);
+  }, [firestore, user]);
+  const { data: userData, isLoading: isUserDocLoading } = useDoc<Student>(userDocRef);
 
   const handleLogout = async () => {
     if (!auth) return;
@@ -50,9 +63,13 @@ export function AppSidebar() {
   };
 
 
-  if (pathname === '/login' || isUserLoading) {
+  if (pathname === '/login' || isUserLoading || isUserDocLoading) {
       return null;
   }
+
+  const isTeacher = userData?.role === 'teacher';
+  const navItems = isTeacher ? teacherNavItems : studentNavItems;
+
 
   return (
     <Sidebar>
