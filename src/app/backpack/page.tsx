@@ -32,17 +32,6 @@ export default function BackpackPage() {
   }, [firestore, user]);
   const { data: studentData, isLoading: isStudentLoading } = useDoc<Student>(studentDocRef);
 
-  // Seed data for demonstration
-  useEffect(() => {
-    if (firestore && user) {
-      // Seed homework
-      mockHomework.forEach(hw => {
-        const hwRef = doc(firestore, 'homework', hw.id);
-        setDocumentNonBlocking(hwRef, hw, { merge: true });
-      });
-    }
-  }, [firestore, user]);
-
   // Create the student doc for the user if it doesn't exist.
   useEffect(() => {
       if (!isStudentLoading && !studentData && user && firestore) {

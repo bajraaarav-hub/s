@@ -22,16 +22,9 @@ export default function DashboardPage() {
     // Seed data for demonstration - only runs when a user is available
     useEffect(() => {
         if (firestore && user) {
-        // Seed homework
-        homeworkAssignments.forEach(hw => {
-            const hwRef = doc(firestore, 'homework', hw.id);
-            setDocumentNonBlocking(hwRef, hw, { merge: true });
-        });
-        
          // Seed current books for main student, but tied to the current user
         const currentBooksRef = doc(firestore, 'users', user.uid, 'currentBooks', 'initial-books');
         setDocumentNonBlocking(currentBooksRef, { studentId: user.uid, id: 'initial-books', bookIds: ['Math Textbook', 'History Textbook', 'Laptop'] }, { merge: true });
-
         }
     }, [firestore, user]);
 
