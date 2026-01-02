@@ -18,39 +18,21 @@ import {
 import {useToast} from '@/hooks/use-toast';
 import { studentGrades, attendanceHistory, pastLeaveRequests } from '@/lib/data';
 
-
-export default function LeaveApprovalPage() {
-  const {user, isUserLoading} = useUser();
+function LeaveApprovalContent() {
   const firestore = useFirestore();
-  const router = useRouter();
+  const { user } = useUser();
   const [selectedRequest, setSelectedRequest] = useState<LeaveRequest | null>(null);
   const [analysisResult, setAnalysisResult] = useState<LeaveRequestOutput | null>(null);
   const [isAnalysisPending, startAnalysisTransition] = useTransition();
   const { toast } = useToast();
 
-  useEffect(() => {
-    if (!isUserLoading && !user) {
-      router.push('/login');
-    }
-  }, [isUserLoading, user, router]);
-
   const userDocRef = useMemoFirebase(() => {
     if (!firestore || !user) return null;
     return doc(firestore, 'users', user.uid);
   }, [firestore, user]);
-  const { data: teacher, isLoading: isTeacherLoading } = useDoc<Student>(userDocRef);
-
-  useEffect(() => {
-      if(!isUserLoading && !isTeacherLoading && user && !teacher) {
-        // This can happen briefly on first login if the doc hasn't been created yet.
-        // We'll just wait. The useDoc hook will trigger a re-render when it loads.
-      } else if (!isTeacherLoading && teacher && teacher.role !== 'teacher') {
-          router.push('/');
-      }
-  }, [teacher, isTeacherLoading, router, user, isUserLoading]);
+  const { data: teacher } = useDoc<Student>(userDocRef);
 
   const leaveRequestsQuery = useMemoFirebase(() => {
-    // Wait until we confirm the user is a teacher before making the query
     if (!firestore || teacher?.role !== 'teacher') return null;
     return query(collectionGroup(firestore, 'leaveRequests'), where('status', '==', 'pending'));
   }, [firestore, teacher?.role]);
@@ -60,7 +42,7 @@ export default function LeaveApprovalPage() {
 
   const handleSelectRequest = (request: LeaveRequest) => {
     setSelectedRequest(request);
-    setAnalysisResult(null); // Clear previous analysis
+    setAnalysisResult(null);
     startAnalysisTransition(async () => {
       try {
         const result = await generateLeaveRequestReasoning({
@@ -68,7 +50,6 @@ export default function LeaveApprovalPage() {
           leaveStartDate: request.startDate,
           leaveEndDate: request.endDate,
           reason: request.reason,
-          // Using mock data for student history for now
           grades: studentGrades,
           pastAttendance: attendanceHistory,
           pastLeaveRequests: pastLeaveRequests,
@@ -91,104 +72,123 @@ export default function LeaveApprovalPage() {
     return 'border-accent';
   };
 
-  const isLoading = isUserLoading || isTeacherLoading;
-  const showLoadingSkeleton = isLoading || areRequestsLoading;
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+      <div className="md:col-span-1">
+        <Card>
+          <CardHeader>
+            <CardTitle>Pending Requests</CardTitle>
+            <CardDescription>{leaveRequests?.length || 0} requests awaiting review.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ScrollArea className="h-96">
+              {areRequestsLoading && <p>Loading requests...</p>}
+              {!areRequestsLoading && leaveRequests && leaveRequests.length === 0 && <p className="text-muted-foreground">No pending requests.</p>}
+              <div className="space-y-2">
+                {leaveRequests?.map(req => (
+                  <button
+                    key={req.id}
+                    onClick={() => handleSelectRequest(req)}
+                    className={cn(
+                      'w-full text-left p-3 rounded-lg border transition-colors',
+                      selectedRequest?.id === req.id ? 'bg-muted border-primary' : 'hover:bg-muted/50'
+                    )}
+                  >
+                    <p className="font-semibold">{req.studentName}</p>
+                    <p className="text-sm text-muted-foreground">
+                      {format(parseISO(req.startDate), 'MMM d, yyyy')} - {format(parseISO(req.endDate), 'MMM d, yyyy')}
+                    </p>
+                  </button>
+                ))}
+              </div>
+            </ScrollArea>
+          </CardContent>
+        </Card>
+      </div>
+      <div className="md:col-span-2">
+        <Card className={cn('sticky top-24 border-2', analysisResult && getRiskColor(analysisResult.riskScore))}>
+          <CardHeader>
+            <CardTitle>AI Review & Analysis</CardTitle>
+            <CardDescription>AI-generated insights on the selected leave request.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {!selectedRequest && (
+               <div className="text-center text-muted-foreground py-8">
+                  <p>Select a request to see the AI analysis.</p>
+              </div>
+            )}
+            {selectedRequest && isAnalysisPending && (
+              <div className="space-y-4">
+                  <div className="flex justify-center">
+                      <Loader2 className="h-8 w-8 animate-spin text-primary"/>
+                  </div>
+                <Skeleton className="h-8 w-1/4 mx-auto" />
+                <Skeleton className="h-4 w-full" />
+                <Skeleton className="h-4 w-3/4" />
+                <div className="pt-4">
+                  <Skeleton className="h-16 w-full" />
+                </div>
+              </div>
+            )}
+            {selectedRequest && !isAnalysisPending && !analysisResult && (
+              <div className="text-center text-muted-foreground py-8">
+                <AlertTriangle className="mx-auto h-12 w-12 mb-4" />
+                <p>Could not load AI analysis.</p>
+              </div>
+            )}
+            {analysisResult && (
+              <div className="space-y-4">
+                <div className="text-center">
+                  <p className="text-sm text-muted-foreground">Risk Score</p>
+                  <p className="text-4xl font-bold font-headline">{(analysisResult.riskScore * 100).toFixed(0)}%</p>
+                </div>
+                <div>
+                  <h4 className="font-semibold">AI Summary:</h4>
+                  <p className="text-sm text-muted-foreground italic">"{analysisResult.summary}"</p>
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  );
+}
 
-  if (isLoading) {
-    return <div>Loading access permissions...</div>;
-  }
+
+export default function LeaveApprovalPage() {
+  const {user, isUserLoading} = useUser();
+  const firestore = useFirestore();
+  const router = useRouter();
+
+  const userDocRef = useMemoFirebase(() => {
+    if (!firestore || !user) return null;
+    return doc(firestore, 'users', user.uid);
+  }, [firestore, user]);
+  const { data: teacher, isLoading: isTeacherLoading } = useDoc<Student>(userDocRef);
+
+  useEffect(() => {
+    if (!isUserLoading && !user) {
+      router.push('/login');
+    } else if (!isUserLoading && !isTeacherLoading && teacher && teacher.role !== 'teacher') {
+        router.push('/');
+    }
+  }, [isUserLoading, user, isTeacherLoading, teacher, router]);
   
-  if (!isTeacherLoading && teacher?.role !== 'teacher') {
-      return <div>You do not have permission to view this page.</div>
-  }
-
-
+  const isLoading = isUserLoading || isTeacherLoading;
+  
   return (
     <div className="space-y-8">
       <div>
         <h1 className="text-3xl font-bold font-headline">Leave Approval</h1>
         <p className="text-muted-foreground">Review and approve student leave requests with AI assistance.</p>
       </div>
+      
+      {isLoading && <div>Loading access permissions...</div>}
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-        <div className="md:col-span-1">
-          <Card>
-            <CardHeader>
-              <CardTitle>Pending Requests</CardTitle>
-              <CardDescription>{leaveRequests?.length || 0} requests awaiting review.</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <ScrollArea className="h-96">
-                {showLoadingSkeleton && <p>Loading requests...</p>}
-                {!showLoadingSkeleton && leaveRequests && leaveRequests.length === 0 && <p className="text-muted-foreground">No pending requests.</p>}
-                <div className="space-y-2">
-                  {leaveRequests?.map(req => (
-                    <button
-                      key={req.id}
-                      onClick={() => handleSelectRequest(req)}
-                      className={cn(
-                        'w-full text-left p-3 rounded-lg border transition-colors',
-                        selectedRequest?.id === req.id ? 'bg-muted border-primary' : 'hover:bg-muted/50'
-                      )}
-                    >
-                      <p className="font-semibold">{req.studentName}</p>
-                      <p className="text-sm text-muted-foreground">
-                        {format(parseISO(req.startDate), 'MMM d, yyyy')} - {format(parseISO(req.endDate), 'MMM d, yyyy')}
-                      </p>
-                    </button>
-                  ))}
-                </div>
-              </ScrollArea>
-            </CardContent>
-          </Card>
-        </div>
-        <div className="md:col-span-2">
-          <Card className={cn('sticky top-24 border-2', analysisResult && getRiskColor(analysisResult.riskScore))}>
-            <CardHeader>
-              <CardTitle>AI Review & Analysis</CardTitle>
-              <CardDescription>AI-generated insights on the selected leave request.</CardDescription>
-            </CardHeader>
-            <CardContent>
-              {!selectedRequest && (
-                 <div className="text-center text-muted-foreground py-8">
-                    <p>Select a request to see the AI analysis.</p>
-                </div>
-              )}
-              {selectedRequest && isAnalysisPending && (
-                <div className="space-y-4">
-                    <div className="flex justify-center">
-                        <Loader2 className="h-8 w-8 animate-spin text-primary"/>
-                    </div>
-                  <Skeleton className="h-8 w-1/4 mx-auto" />
-                  <Skeleton className="h-4 w-full" />
-                  <Skeleton className="h-4 w-3/4" />
-                  <div className="pt-4">
-                    <Skeleton className="h-16 w-full" />
-                  </div>
-                </div>
-              )}
-              {selectedRequest && !isAnalysisPending && !analysisResult && (
-                <div className="text-center text-muted-foreground py-8">
-                  <AlertTriangle className="mx-auto h-12 w-12 mb-4" />
-                  <p>Could not load AI analysis.</p>
-                </div>
-              )}
-              {analysisResult && (
-                <div className="space-y-4">
-                  <div className="text-center">
-                    <p className="text-sm text-muted-foreground">Risk Score</p>
-                    <p className="text-4xl font-bold font-headline">{(analysisResult.riskScore * 100).toFixed(0)}%</p>
-                  </div>
-                  <div>
-                    <h4 className="font-semibold">AI Summary:</h4>
-                    <p className="text-sm text-muted-foreground italic">"{analysisResult.summary}"</p>
-                  </div>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </div>
-      </div>
+      {!isLoading && teacher?.role !== 'teacher' && <div>You do not have permission to view this page.</div>}
+
+      {!isLoading && teacher?.role === 'teacher' && <LeaveApprovalContent />}
     </div>
   );
 }
