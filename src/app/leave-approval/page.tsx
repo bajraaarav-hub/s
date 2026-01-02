@@ -51,9 +51,10 @@ export default function LeaveApprovalPage() {
 
   const leaveRequestsQuery = useMemoFirebase(() => {
     // Wait until we confirm the user is a teacher before making the query
-    if (!firestore || isTeacherLoading || !teacher || teacher.role !== 'teacher') return null;
+    if (!firestore || teacher?.role !== 'teacher') return null;
     return query(collectionGroup(firestore, 'leaveRequests'), where('status', '==', 'pending'));
-  }, [firestore, teacher, isTeacherLoading]);
+  }, [firestore, teacher?.role]);
+
 
   const {data: leaveRequests, isLoading: areRequestsLoading} = useCollection<LeaveRequest>(leaveRequestsQuery);
 
