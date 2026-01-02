@@ -5,11 +5,13 @@ import {Backpack, BarChart3, BookOpenCheck, CalendarCheck, Home, ThumbsUp} from 
 import {
   Sidebar,
   SidebarContent,
+  SidebarFooter,
   SidebarHeader,
   SidebarMenu,
   SidebarMenuItem,
   SidebarMenuButton,
 } from '@/components/ui/sidebar';
+import { ThemeSwitcher } from './theme-switcher';
 
 const navItems = [
   {href: '/', icon: Home, label: 'Dashboard'},
@@ -44,6 +46,9 @@ export function AppSidebar() {
           ))}
         </SidebarMenu>
       </SidebarContent>
+      <SidebarFooter>
+        <ThemeSwitcher />
+      </SidebarFooter>
     </Sidebar>
   );
 }
