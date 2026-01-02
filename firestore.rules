@@ -62,7 +62,7 @@ service cloud.firestore {
      * This function checks the user's profile document in the /users collection.
      */
     function isTeacher() {
-      return isSignedIn() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'teacher';
+      return isSignedIn() && exists(/databases/$(database)/documents/users/$(request.auth.uid)) && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'teacher';
     }
 
     /**

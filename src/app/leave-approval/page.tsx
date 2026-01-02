@@ -38,18 +38,22 @@ export default function LeaveApprovalPage() {
     if (!firestore || !user) return null;
     return doc(firestore, 'users', user.uid);
   }, [firestore, user]);
-  const { data: teacher, isLoading: isTeacherLoading } = useDoc(userDocRef);
+  const { data: teacher, isLoading: isTeacherLoading } = useDoc<Student>(userDocRef);
 
   useEffect(() => {
-      if(!isTeacherLoading && teacher && teacher.role !== 'teacher') {
+      if(!isUserLoading && !isTeacherLoading && user && !teacher) {
+        // This can happen briefly on first login if the doc hasn't been created yet.
+        // We'll just wait. The useDoc hook will trigger a re-render when it loads.
+      } else if (!isTeacherLoading && teacher && teacher.role !== 'teacher') {
           router.push('/');
       }
-  }, [teacher, isTeacherLoading, router]);
+  }, [teacher, isTeacherLoading, router, user, isUserLoading]);
 
   const leaveRequestsQuery = useMemoFirebase(() => {
-    if (!firestore) return null;
+    // Wait until we confirm the user is a teacher before making the query
+    if (!firestore || !teacher || teacher.role !== 'teacher') return null;
     return query(collectionGroup(firestore, 'leaveRequests'), where('status', '==', 'pending'));
-  }, [firestore]);
+  }, [firestore, teacher]);
 
   const {data: leaveRequests, isLoading: areRequestsLoading} = useCollection<LeaveRequest>(leaveRequestsQuery);
 
@@ -86,8 +90,15 @@ export default function LeaveApprovalPage() {
     return 'border-accent';
   };
 
-  if (isUserLoading || isTeacherLoading) {
-    return <div>Loading...</div>;
+  const isLoading = isUserLoading || isTeacherLoading;
+  const showLoadingSkeleton = isLoading || areRequestsLoading;
+
+  if (isLoading) {
+    return <div>Loading access permissions...</div>;
+  }
+  
+  if (teacher?.role !== 'teacher') {
+      return <div>You do not have permission to view this page.</div>
   }
 
 
@@ -107,8 +118,8 @@ export default function LeaveApprovalPage() {
             </CardHeader>
             <CardContent>
               <ScrollArea className="h-96">
-                {areRequestsLoading && <p>Loading requests...</p>}
-                {!areRequestsLoading && leaveRequests && leaveRequests.length === 0 && <p className="text-muted-foreground">No pending requests.</p>}
+                {showLoadingSkeleton && <p>Loading requests...</p>}
+                {!showLoadingSkeleton && leaveRequests && leaveRequests.length === 0 && <p className="text-muted-foreground">No pending requests.</p>}
                 <div className="space-y-2">
                   {leaveRequests?.map(req => (
                     <button
