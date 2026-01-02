@@ -11,15 +11,10 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { LeaveRequest, Student, PastLeaveRequest, Grade, AttendanceRecord } from '@/lib/types';
-import { Bot, Loader2, Send, Sparkles, User as UserIcon } from 'lucide-react';
+import { Loader2, Sparkles } from 'lucide-react';
 import { generateLeaveRequestReasoning, LeaveRequestInput, LeaveRequestOutput } from '@/ai/flows/leave-request-ai-helper';
-import { leaveRequestChat } from '@/ai/flows/leave-request-chat';
 import { useCollection, useDoc, useFirestore, useMemoFirebase, updateDocumentNonBlocking } from '@/firebase';
 import { collection, doc, query } from 'firebase/firestore';
-import { Input } from './ui/input';
-import { ScrollArea } from './ui/scroll-area';
-import { Avatar, AvatarFallback } from './ui/avatar';
-import { cn } from '@/lib/utils';
 
 function AIAnalysisCard({ analysis, isLoading }: { analysis: LeaveRequestOutput | null; isLoading: boolean }) {
   if (isLoading) {
@@ -75,11 +70,6 @@ function LeaveRequestItem({ request, onStatusChange }: { request: LeaveRequest, 
   const { toast } = useToast();
   const firestore = useFirestore();
 
-  const [chatHistory, setChatHistory] = useState<{ role: 'user' | 'model'; content: string }[]>([]);
-  const [chatInput, setChatInput] = useState('');
-  const [isChatPending, startChatTransition] = useTransition();
-  const [showChat, setShowChat] = useState(false);
-
   const studentDocRef = useMemoFirebase(() => firestore ? doc(firestore, 'users', request.studentId) : null, [firestore, request.studentId]);
   const { data: student, isLoading: isStudentLoading } = useDoc<Student>(studentDocRef);
 
@@ -94,83 +84,34 @@ function LeaveRequestItem({ request, onStatusChange }: { request: LeaveRequest, 
 
   const isLoadingDetails = isStudentLoading || arePastLeavesLoading || areGradesLoading || isAttendanceLoading;
 
-  const getAiAnalysis = async () => {
-    if (isLoadingDetails) return null;
-    const historicalLeaves = (pastLeaveRequests || [])
-      .filter((req) => req.id !== request.id && req.status !== 'pending') as PastLeaveRequest[];
-
-    const analysisInput: LeaveRequestInput = {
-      studentId: request.studentId,
-      leaveStartDate: request.startDate,
-      leaveEndDate: request.endDate,
-      reason: request.reason,
-      pastLeaveRequests: historicalLeaves,
-      pastAttendance: attendance || [],
-      grades: grades || [],
-    };
-    
-    try {
-      const result = await generateLeaveRequestReasoning(analysisInput);
-      setAnalysisResult(result);
-      return { analysisInput, result };
-    } catch (error) {
-        console.error("AI Analysis failed:", error);
-        toast({
-          title: 'AI Analysis Failed',
-          description: 'Could not generate AI insights for this request.',
-          variant: 'destructive',
-        });
-        return null;
-    }
-  }
-
   const handleReview = () => {
     startAiTransition(async () => {
-      await getAiAnalysis();
-    });
-  };
+        if (isLoadingDetails) return;
+        
+        const historicalLeaves = (pastLeaveRequests || [])
+            .filter((req): req is PastLeaveRequest => req.id !== request.id && req.status !== 'pending');
 
-  const handleSendChatMessage = () => {
-    if (!chatInput.trim() || !analysisResult) return;
-
-    const newHistory = [...chatHistory, { role: 'user' as const, content: chatInput }];
-    setChatHistory(newHistory);
-    const question = chatInput;
-    setChatInput('');
-
-    startChatTransition(async () => {
-      if (isLoadingDetails) return;
-
-      const historicalLeaves = (pastLeaveRequests || [])
-        .filter((req) => req.id !== request.id && req.status !== 'pending') as PastLeaveRequest[];
-
-      const originalRequest: LeaveRequestInput = {
-        studentId: request.studentId,
-        leaveStartDate: request.startDate,
-        leaveEndDate: request.endDate,
-        reason: request.reason,
-        pastLeaveRequests: historicalLeaves,
-        pastAttendance: attendance || [],
-        grades: grades || [],
-      };
-
-      try {
-        const aiResponse = await leaveRequestChat({
-          originalRequest: originalRequest,
-          initialAnalysis: analysisResult,
-          history: newHistory,
-          question: question,
-        });
-        setChatHistory(prev => [...prev, { role: 'model' as const, content: aiResponse }]);
-      } catch (error) {
-        console.error("Chat with AI failed:", error);
-        toast({
-          title: 'Chat Failed',
-          description: 'Could not get a response from the AI.',
-          variant: 'destructive',
-        });
-        setChatHistory(prev => prev.slice(0, -1)); // remove user question on error
-      }
+        const analysisInput: LeaveRequestInput = {
+            studentId: request.studentId,
+            leaveStartDate: request.startDate,
+            leaveEndDate: request.endDate,
+            reason: request.reason,
+            pastLeaveRequests: historicalLeaves,
+            pastAttendance: attendance || [],
+            grades: grades || [],
+        };
+        
+        try {
+            const result = await generateLeaveRequestReasoning(analysisInput);
+            setAnalysisResult(result);
+        } catch (error) {
+            console.error("AI Analysis failed:", error);
+            toast({
+            title: 'AI Analysis Failed',
+            description: 'Could not generate AI insights for this request.',
+            variant: 'destructive',
+            });
+        }
     });
   };
   
@@ -211,51 +152,6 @@ function LeaveRequestItem({ request, onStatusChange }: { request: LeaveRequest, 
                 {isAiPending || isLoadingDetails ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />}
                 {isLoadingDetails ? 'Loading Student Data...' : 'Review with AI'}
             </Button>
-        )}
-
-        {analysisResult && !showChat && (
-          <Button variant="outline" size="sm" onClick={() => setShowChat(true)}>Chat with AI</Button>
-        )}
-        
-        {showChat && analysisResult && (
-          <Card>
-            <CardHeader><CardTitle className='text-base'>Chat about this analysis</CardTitle></CardHeader>
-            <CardContent className="space-y-4">
-                <ScrollArea className="h-48 w-full pr-4">
-                    <div className='space-y-4'>
-                    {chatHistory.map((msg, index) => (
-                        <div key={index} className={cn("flex items-start gap-3", msg.role === 'user' ? 'justify-end' : '')}>
-                            {msg.role === 'model' && <Avatar className="h-8 w-8"><AvatarFallback><Bot /></AvatarFallback></Avatar>}
-                            <div className={cn("rounded-lg px-3 py-2 max-w-sm", msg.role === 'model' ? 'bg-muted' : 'bg-primary text-primary-foreground')}>
-                                <p className="text-sm">{msg.content}</p>
-                            </div>
-                            {msg.role === 'user' && <Avatar className="h-8 w-8"><AvatarFallback><UserIcon /></AvatarFallback></Avatar>}
-                        </div>
-                    ))}
-                    {isChatPending && (
-                        <div className="flex items-start gap-3">
-                            <Avatar className="h-8 w-8"><AvatarFallback><Bot /></AvatarFallback></Avatar>
-                            <div className="rounded-lg px-3 py-2 bg-muted flex items-center">
-                                <Loader2 className="h-4 w-4 animate-spin" />
-                            </div>
-                        </div>
-                    )}
-                    </div>
-                </ScrollArea>
-                <div className="flex gap-2">
-                    <Input 
-                        value={chatInput}
-                        onChange={(e) => setChatInput(e.target.value)}
-                        onKeyDown={(e) => e.key === 'Enter' && !isChatPending && handleSendChatMessage()}
-                        placeholder="Ask a question..."
-                        disabled={isChatPending}
-                    />
-                    <Button onClick={handleSendChatMessage} disabled={isChatPending || !chatInput.trim()}>
-                        {isChatPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-                    </Button>
-                </div>
-            </CardContent>
-          </Card>
         )}
         
         <div className="flex gap-2 justify-end pt-4">
