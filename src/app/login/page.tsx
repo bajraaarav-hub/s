@@ -91,7 +91,7 @@ export default function LoginPage() {
             <FormItem>
               <FormLabel>Login ID</FormLabel>
               <FormControl>
-                <Input placeholder="name@example.com" {...field} />
+                <Input placeholder="enter here" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
