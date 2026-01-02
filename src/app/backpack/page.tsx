@@ -21,9 +21,9 @@ export default function BackpackPage() {
   }, [isUserLoading, user, router]);
 
   const homeworkQuery = useMemoFirebase(() => {
-    if (!firestore) return null;
+    if (!firestore || !user) return null;
     return query(collection(firestore, 'homework'));
-  }, [firestore]);
+  }, [firestore, user]);
   const { data: allHomework, isLoading: isHomeworkLoading } = useCollection<Homework>(homeworkQuery);
 
   const studentDocRef = useMemoFirebase(() => {
@@ -50,25 +50,20 @@ export default function BackpackPage() {
     }
   }, [firestore, user]);
 
-  // Create the student doc for the anonymous user if it doesn't exist.
+  // Create the student doc for the user if it doesn't exist.
   useEffect(() => {
       if (!isStudentLoading && !studentData && user && firestore) {
         const userRef = doc(firestore, 'users', user.uid);
-        const newStudent = { ...mainStudent, id: user.uid, email: user.email || 'anonymous@example.com', name: 'Anonymous Panda' };
+        const newStudent = { ...mainStudent, id: user.uid, email: user.email || 'anonymous@example.com', name: user.displayName || 'Anonymous Panda' };
         setDocumentNonBlocking(userRef, newStudent, { merge: true });
       }
   }, [isStudentLoading, studentData, user, firestore]);
 
-  if (isHomeworkLoading || isUserLoading || isStudentLoading || !user || !allHomework) {
+  if (isHomeworkLoading || isUserLoading || isStudentLoading || !user) {
     return <div>Loading...</div>;
   }
 
-  const currentStudent = studentData || { ...mainStudent, id: user?.uid || mainStudent.id, name: 'Anonymous Panda'};
-
-
-  if (!currentStudent) {
-    return <div>Loading student data...</div>
-  }
+  const currentStudent = studentData || { ...mainStudent, id: user?.uid || mainStudent.id, name: user.displayName || 'Anonymous Panda'};
 
   return (
     <div className="space-y-8">

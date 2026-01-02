@@ -24,8 +24,13 @@ export default function LeaveRequestsPage() {
   }, [firestore, user]);
   const { data: student, isLoading: isStudentLoading } = useDoc<Student>(studentDocRef);
 
-  if (isUserLoading || isStudentLoading || !student) {
+  if (isUserLoading || isStudentLoading || !user) {
     return <div>Loading...</div>;
+  }
+
+  if (!student) {
+    // This can happen briefly if the user doc hasn't been created yet
+    return <div>Loading student data...</div>;
   }
 
   return (
