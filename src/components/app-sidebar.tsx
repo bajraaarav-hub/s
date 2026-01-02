@@ -28,6 +28,7 @@ const studentNavItems = [
 
 const teacherNavItems = [
     {href: '/', icon: Home, label: 'Dashboard'},
+    {href: '/leave-approval', icon: ThumbsUp, label: 'Leave Approval'},
 ];
 
 export function AppSidebar() {

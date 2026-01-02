@@ -1,7 +1,6 @@
 'use client';
 
 import { LeaveRequestHelper } from '@/components/leave-request-helper';
-import { studentGrades, attendanceHistory, pastLeaveRequests } from '@/lib/data';
 import { useUser, useDoc, useFirestore, useMemoFirebase } from '@/firebase';
 import type { Student } from '@/lib/types';
 import { doc } from 'firebase/firestore';
@@ -37,9 +36,6 @@ export default function LeaveRequestsPage() {
       </div>
       <LeaveRequestHelper
         student={student}
-        grades={studentGrades}
-        attendance={attendanceHistory}
-        pastRequests={pastLeaveRequests}
       />
     </div>
   );

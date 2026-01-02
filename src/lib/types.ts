@@ -35,3 +35,15 @@ export type PastLeaveRequest = {
   reason: string;
   status: 'approved' | 'rejected';
 };
+
+export type LeaveRequest = {
+    id: string;
+    studentId: string;
+    studentName: string;
+    startDate: string;
+    endDate: string;
+    reason: string;
+    status: 'pending' | 'approved' | 'rejected';
+    summary?: string;
+    riskScore?: number;
+}

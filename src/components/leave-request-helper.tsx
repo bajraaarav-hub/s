@@ -1,5 +1,5 @@
 'use client';
-import {generateLeaveRequestReasoning, LeaveRequestInput, LeaveRequestOutput} from '@/ai/flows/leave-request-ai-helper';
+import {addDocumentNonBlocking} from '@/firebase';
 import {Button} from '@/components/ui/button';
 import {Calendar} from '@/components/ui/calendar';
 import {Card, CardContent, CardDescription, CardHeader, CardTitle} from '@/components/ui/card';
@@ -10,12 +10,13 @@ import {useToast} from '@/hooks/use-toast';
 import {cn} from '@/lib/utils';
 import {zodResolver} from '@hookform/resolvers/zod';
 import {format} from 'date-fns';
-import {AlertTriangle, CalendarIcon, Loader2, Sparkles} from 'lucide-react';
-import {useState, useTransition} from 'react';
+import {CalendarIcon, Loader2, Sparkles} from 'lucide-react';
+import {useTransition} from 'react';
 import {useForm} from 'react-hook-form';
 import * as z from 'zod';
-import {Skeleton} from './ui/skeleton';
-import { Student } from '@/lib/types';
+import {Student} from '@/lib/types';
+import {useFirestore, useUser} from '@/firebase';
+import {collection} from 'firebase/firestore';
 
 const formSchema = z
   .object({
@@ -32,18 +33,13 @@ const formSchema = z
 
 export function LeaveRequestHelper({
   student,
-  grades,
-  attendance,
-  pastRequests,
 }: {
   student: Student;
-  grades: LeaveRequestInput['grades'];
-  attendance: LeaveRequestInput['pastAttendance'];
-  pastRequests: LeaveRequestInput['pastLeaveRequests'];
 }) {
-  const [analysisResult, setAnalysisResult] = useState<LeaveRequestOutput | null>(null);
   const [isPending, startTransition] = useTransition();
   const {toast} = useToast();
+  const firestore = useFirestore();
+  const {user} = useUser();
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -57,42 +53,38 @@ export function LeaveRequestHelper({
   });
 
   function onSubmit(values: z.infer<typeof formSchema>) {
+    if (!firestore || !user) return;
+
     startTransition(async () => {
-      setAnalysisResult(null);
       try {
-        const result = await generateLeaveRequestReasoning({
+        const leaveRequestsCol = collection(firestore, 'users', user.uid, 'leaveRequests');
+        await addDocumentNonBlocking(leaveRequestsCol, {
           studentId: student.id,
-          leaveStartDate: format(values.dateRange.from, 'yyyy-MM-dd'),
-          leaveEndDate: format(values.dateRange.to || values.dateRange.from, 'yyyy-MM-dd'),
+          studentName: student.name,
+          startDate: format(values.dateRange.from, 'yyyy-MM-dd'),
+          endDate: format(values.dateRange.to || values.dateRange.from, 'yyyy-MM-dd'),
           reason: values.reason,
-          grades,
-          pastAttendance: attendance,
-          pastLeaveRequests: pastRequests,
+          status: 'pending',
         });
-        setAnalysisResult(result);
+
         toast({
-          title: 'Request Sent for Analysis',
-          description: 'The AI is reviewing your leave request.',
+          title: 'Request Submitted',
+          description: 'Your leave request has been sent for review.',
         });
+        form.reset();
       } catch (error) {
         console.error(error);
         toast({
           title: 'Error',
-          description: 'Failed to run AI analysis.',
+          description: 'Failed to submit leave request.',
           variant: 'destructive',
         });
       }
     });
   }
 
-  const getRiskColor = (score: number) => {
-    if (score > 0.66) return 'border-destructive';
-    if (score > 0.33) return 'border-orange-400';
-    return 'border-accent';
-  };
-
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
+    <div>
       <Card>
         <CardHeader>
           <CardTitle>Submit a Leave Request</CardTitle>
@@ -163,46 +155,10 @@ export function LeaveRequestHelper({
                 ) : (
                   <Sparkles className="mr-2 h-4 w-4" />
                 )}
-                Submit for AI Review
+                Submit Request
               </Button>
             </form>
           </Form>
-        </CardContent>
-      </Card>
-      <Card className={cn('sticky top-24', analysisResult && getRiskColor(analysisResult.riskScore), 'border-2')}>
-        <CardHeader>
-          <CardTitle>For Teacher's Review</CardTitle>
-          <CardDescription>AI-generated insights on this leave request.</CardDescription>
-        </CardHeader>
-        <CardContent>
-          {isPending && (
-            <div className="space-y-4">
-              <Skeleton className="h-8 w-1/4" />
-              <Skeleton className="h-4 w-full" />
-              <Skeleton className="h-4 w-3/4" />
-              <div className="pt-4">
-                <Skeleton className="h-16 w-full" />
-              </div>
-            </div>
-          )}
-          {!isPending && !analysisResult && (
-            <div className="text-center text-muted-foreground py-8">
-              <AlertTriangle className="mx-auto h-12 w-12 mb-4" />
-              <p>Submit a request to see the AI analysis.</p>
-            </div>
-          )}
-          {analysisResult && (
-            <div className="space-y-4">
-              <div className="text-center">
-                <p className="text-sm text-muted-foreground">Risk Score</p>
-                <p className="text-4xl font-bold font-headline">{(analysisResult.riskScore * 100).toFixed(0)}%</p>
-              </div>
-              <div>
-                <h4 className="font-semibold">AI Summary:</h4>
-                <p className="text-sm text-muted-foreground italic">"{analysisResult.summary}"</p>
-              </div>
-            </div>
-          )}
         </CardContent>
       </Card>
     </div>
