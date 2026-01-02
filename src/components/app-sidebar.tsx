@@ -19,37 +19,19 @@ import { Button } from './ui/button';
 import { useToast } from '@/hooks/use-toast';
 
 
-const studentNavItems = [
+const navItems = [
   {href: '/', icon: Home, label: 'Dashboard'},
   {href: '/backpack', icon: BookOpenCheck, label: 'Book Check'},
   {href: '/leave-requests', icon: ThumbsUp, label: 'Leave Requests'},
   {href: '/leaderboard', icon: BarChart3, label: 'Leaderboard'},
 ];
 
-const teacherNavItems = [
-    {href: '/', icon: Home, label: 'Dashboard'},
-    {href: '/leave-approval', icon: ThumbsUp, label: 'Leave Approval'},
-];
-
 export function AppSidebar() {
   const pathname = usePathname();
   const { user, isUserLoading } = useUser();
-  const firestore = useFirestore();
   const auth = useAuth();
   const router = useRouter();
   const { toast } = useToast();
-
-
-  const userDocRef = useMemoFirebase(() => {
-    // Only create the doc ref if the user is fully loaded and exists
-    if (!firestore || isUserLoading || !user) return null;
-    return doc(firestore, 'users', user.uid);
-  }, [firestore, user, isUserLoading]);
-
-  const { data: userData, isLoading: isUserDocLoading } = useDoc<Student>(userDocRef);
-
-  // Default to student nav while user data is loading
-  const navItems = !isUserDocLoading && userData?.role === 'teacher' ? teacherNavItems : studentNavItems;
 
   const handleLogout = async () => {
     if (!auth) return;
@@ -68,7 +50,7 @@ export function AppSidebar() {
   };
 
 
-  if (pathname === '/login') {
+  if (pathname === '/login' || isUserLoading) {
       return null;
   }
 

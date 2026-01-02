@@ -132,29 +132,19 @@ service cloud.firestore {
     }
 
     /**
-     * @description A user can manage their own leave requests. Teachers can list all requests.
+     * @description A user can manage their own leave requests.
      * @path /users/{userId}/leaveRequests/{leaveRequestId}
      * @allow (get) An authenticated user reading their own leave request: `auth.uid == 'user_123'`, `get /users/user_123/leaveRequests/req_abc`
      * @deny (update) Another user trying to update a leave request: `auth.uid == 'user_456'`, `update /users/user_123/leaveRequests/req_abc`
      * @principle Enforces document ownership within a user's private subcollection.
      */
     match /users/{userId}/leaveRequests/{leaveRequestId} {
-      allow get: if isOwner(userId) || isTeacher();
-      allow list: if isOwner(userId); // Individual list
+      allow get: if isOwner(userId);
+      allow list: if isOwner(userId);
       allow create: if isOwner(userId) && hasValidStudentIdOnCreate(userId);
-      allow update: if (isExistingOwner(userId) && isStudentIdImmutable()) || isTeacher();
+      allow update: if isExistingOwner(userId) && isStudentIdImmutable();
       allow delete: if isExistingOwner(userId);
     }
-
-    /**
-     * @description Collection group rule for `leaveRequests`. Allows teachers to list all leave requests across all users.
-     * @allow (list) A teacher listing all pending leave requests: `auth.uid == 'teacher_456'`, `list /leaveRequests`
-     * @principle Grants broad, role-based read access for administrative tasks.
-     */
-    match /{path=**}/leaveRequests/{leaveRequestId} {
-        allow list: if isTeacher();
-    }
-
 
     /**
      * @description A user can read and manage their own AI analysis results.
