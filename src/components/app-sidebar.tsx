@@ -1,7 +1,7 @@
 'use client';
 import Link from 'next/link';
 import {usePathname, useRouter} from 'next/navigation';
-import {Backpack, BarChart3, BookOpenCheck, Home, LogOut, ShieldCheck, ThumbsUp} from 'lucide-react';
+import {Backpack, BarChart3, BookOpenCheck, CalendarCheck, Home, LogOut, ShieldCheck, ListTodo} from 'lucide-react';
 import {
   Sidebar,
   SidebarContent,
@@ -30,6 +30,8 @@ const teacherNavItems = [
     {href: '/', icon: Home, label: 'Dashboard'},
     {href: '/leave-approval', icon: ShieldCheck, label: 'Leave Approval'},
     {href: '/leaderboard', icon: BarChart3, label: 'Leaderboard'},
+    {href: '/attendance', icon: CalendarCheck, label: 'Attendance'},
+    {href: '/schedule', icon: ListTodo, label: 'Homework Schedule'},
 ]
 
 export function AppSidebar() {

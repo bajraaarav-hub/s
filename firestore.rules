@@ -128,27 +128,27 @@ service cloud.firestore {
       }
       
       /**
-       * @description Grades are readable by any signed in user and writeable only by owner.
+       * @description Grades are readable by any signed in user and writeable only by teachers.
        * @path /users/{userId}/grades/{gradeId}
        */
       match /grades/{gradeId} {
           allow get: if isSignedIn();
           allow list: if isSignedIn();
-          allow create: if isOwner(userId);
-          allow update: if isOwner(userId);
-          allow delete: if isOwner(userId);
+          allow create: if isTeacher();
+          allow update: if isTeacher();
+          allow delete: if isTeacher();
       }
 
       /**
-       * @description Attendance is readable by any signed in user and writeable only by owner.
+       * @description Attendance is readable by any signed in user and writeable only by teachers.
        * @path /users/{userId}/attendance/{attendanceId}
        */
       match /attendance/{attendanceId} {
           allow get: if isSignedIn();
           allow list: if isSignedIn();
-          allow create: if isOwner(userId);
-          allow update: if isOwner(userId);
-          allow delete: if isOwner(userId);
+          allow create: if isTeacher();
+          allow update: if isTeacher();
+          allow delete: if isTeacher();
       }
     }
     
@@ -171,15 +171,15 @@ service cloud.firestore {
     }
 
     /**
-     * @description Homework assignments are public and readable by anyone, but cannot be modified by clients.
+     * @description Homework assignments can be read by anyone, but only created/updated by teachers.
      * @path /homework/{homeworkId}
      */
     match /homework/{homeworkId} {
       allow get: if true;
       allow list: if true;
-      allow create: if isSignedIn(); // Allow signed-in users to create for seeding
-      allow update: if isSignedIn(); // Allow signed-in users to update for seeding
-      allow delete: if false;
+      allow create: if isTeacher();
+      allow update: if isTeacher();
+      allow delete: if isTeacher();
     }
 
     /**
