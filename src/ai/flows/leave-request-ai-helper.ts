@@ -26,12 +26,14 @@ const LeaveRequestInputSchema = z.object({
   ).optional().describe('Past leave requests of the student.'),
   pastAttendance: z.array(
     z.object({
+      id: z.string(),
       date: z.string(),
       status: z.enum(['present', 'absent']),
     })
   ).optional().describe('Past attendance records of the student.'),
   grades: z.array(
     z.object({
+      id: z.string(),
       subject: z.string(),
       grade: z.number(),
     })
