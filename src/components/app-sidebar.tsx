@@ -1,7 +1,7 @@
 'use client';
 import Link from 'next/link';
-import {usePathname} from 'next/navigation';
-import {Backpack, BarChart3, BookOpenCheck, Home, ThumbsUp} from 'lucide-react';
+import {usePathname, useRouter} from 'next/navigation';
+import {Backpack, BarChart3, BookOpenCheck, Home, LogOut, ThumbsUp} from 'lucide-react';
 import {
   Sidebar,
   SidebarContent,
@@ -12,9 +12,11 @@ import {
   SidebarMenuButton,
 } from '@/components/ui/sidebar';
 import { ThemeSwitcher } from './theme-switcher';
-import { useUser, useDoc, useFirestore, useMemoFirebase } from '@/firebase';
-import { doc } from 'firebase/firestore';
+import { useUser, useDoc, useFirestore, useMemoFirebase, useAuth } from '@/firebase';
+import { doc, signOut } from 'firebase/firestore';
 import type { Student } from '@/lib/types';
+import { Button } from './ui/button';
+import { useToast } from '@/hooks/use-toast';
 
 
 const studentNavItems = [
@@ -32,6 +34,10 @@ export function AppSidebar() {
   const pathname = usePathname();
   const { user } = useUser();
   const firestore = useFirestore();
+  const auth = useAuth();
+  const router = useRouter();
+  const { toast } = useToast();
+
 
   const userDocRef = useMemoFirebase(() => {
     if (!firestore || !user) return null;
@@ -40,6 +46,23 @@ export function AppSidebar() {
   const { data: userData } = useDoc<Student>(userDocRef);
 
   const navItems = userData?.role === 'teacher' ? teacherNavItems : studentNavItems;
+
+  const handleLogout = async () => {
+    if (!auth) return;
+    try {
+        await auth.signOut();
+        toast({ title: 'Signed out successfully.' });
+        router.push('/login');
+    } catch (error: any) {
+        console.error("Logout failed:", error);
+        toast({
+            variant: "destructive",
+            title: "Logout Failed",
+            description: error.message || "Could not sign out.",
+        });
+    }
+  };
+
 
   if (pathname === '/login') {
       return null;
@@ -69,6 +92,10 @@ export function AppSidebar() {
       </SidebarContent>
       <SidebarFooter>
         <ThemeSwitcher />
+        <Button variant="outline" size="icon" onClick={handleLogout} className="w-full">
+            <LogOut className="h-[1.2rem] w-[1.2rem]" />
+            <span className="sr-only">Log Out</span>
+        </Button>
       </SidebarFooter>
     </Sidebar>
   );
