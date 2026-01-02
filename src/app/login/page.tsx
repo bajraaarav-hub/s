@@ -110,23 +110,15 @@ export default function LoginPage() {
             </FormItem>
           )}
         />
-        <div className="grid grid-cols-2 gap-4 pt-4">
+        <div className="pt-4">
           <Button
             type="button"
             onClick={form.handleSubmit((values) => handleAuth(values, 'signIn', role))}
             disabled={isPending}
+            className="w-full"
           >
             {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             Sign In
-          </Button>
-          <Button
-            type="button"
-            variant="secondary"
-            onClick={form.handleSubmit((values) => handleAuth(values, 'signUp', role))}
-            disabled={isPending}
-          >
-            {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            Create Account
           </Button>
         </div>
       </form>
@@ -142,7 +134,7 @@ export default function LoginPage() {
             <h1 className="text-3xl font-bold font-headline">SmartBackpack</h1>
           </div>
           <CardTitle className="text-2xl">Welcome</CardTitle>
-          <CardDescription>Sign in or create an account to continue</CardDescription>
+          <CardDescription>Sign in to your account to continue</CardDescription>
         </CardHeader>
         <CardContent>
           <Tabs defaultValue="student" className="w-full">
