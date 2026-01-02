@@ -12,16 +12,38 @@ import {
   SidebarMenuButton,
 } from '@/components/ui/sidebar';
 import { ThemeSwitcher } from './theme-switcher';
+import { useUser, useDoc, useFirestore, useMemoFirebase } from '@/firebase';
+import { doc } from 'firebase/firestore';
+import type { Student } from '@/lib/types';
 
-const navItems = [
+
+const studentNavItems = [
   {href: '/', icon: Home, label: 'Dashboard'},
   {href: '/backpack', icon: BookOpenCheck, label: 'Book Check'},
   {href: '/leave-requests', icon: ThumbsUp, label: 'Leave Requests'},
   {href: '/leaderboard', icon: BarChart3, label: 'Leaderboard'},
 ];
 
+const teacherNavItems = [
+    {href: '/', icon: Home, label: 'Dashboard'},
+];
+
 export function AppSidebar() {
   const pathname = usePathname();
+  const { user } = useUser();
+  const firestore = useFirestore();
+
+  const userDocRef = useMemoFirebase(() => {
+    if (!firestore || !user) return null;
+    return doc(firestore, 'users', user.uid);
+  }, [firestore, user]);
+  const { data: userData } = useDoc<Student>(userDocRef);
+
+  const navItems = userData?.role === 'teacher' ? teacherNavItems : studentNavItems;
+
+  if (pathname === '/login') {
+      return null;
+  }
 
   return (
     <Sidebar>

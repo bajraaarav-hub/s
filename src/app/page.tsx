@@ -6,10 +6,18 @@ import { useEffect } from 'react';
 import { collection, query, doc, limit } from 'firebase/firestore';
 import type { Student, Homework } from '@/lib/types';
 import { setDocumentNonBlocking } from '@/firebase/non-blocking-updates';
+import { useRouter } from 'next/navigation';
 
 export default function DashboardPage() {
     const firestore = useFirestore();
     const { user, isUserLoading } = useUser();
+    const router = useRouter();
+
+    useEffect(() => {
+        if (!isUserLoading && !user) {
+            router.push('/login');
+        }
+    }, [isUserLoading, user, router]);
 
     // Seed data for demonstration - only runs when a user is available
     useEffect(() => {
@@ -52,16 +60,7 @@ export default function DashboardPage() {
     }, [firestore]);
     const { data: leaderboard, isLoading: isLeaderboardLoading } = useCollection<Student>(leaderboardQuery);
     
-    // Create the student doc for the anonymous user if it doesn't exist.
-    useEffect(() => {
-        if (!isStudentLoading && !student && user && firestore) {
-          const userRef = doc(firestore, 'users', user.uid);
-          const newStudent = { ...mainStudent, id: user.uid, email: user.email || 'anonymous@example.com', name: 'Anonymous Panda' };
-          setDocumentNonBlocking(userRef, newStudent, { merge: true });
-        }
-    }, [isStudentLoading, student, user, firestore]);
-
-    if (isUserLoading || isStudentLoading || isHomeworkLoading || isLeaderboardLoading) {
+    if (isUserLoading || !user || !student || isStudentLoading || isHomeworkLoading || isLeaderboardLoading) {
         return <div>Loading...</div>;
     }
     

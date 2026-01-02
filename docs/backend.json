@@ -30,12 +30,18 @@
         "rank": {
           "type": "number",
           "description": "The user's rank on the leaderboard."
+        },
+        "role": {
+            "type": "string",
+            "description": "The user's role in the application.",
+            "enum": ["student", "teacher"]
         }
       },
       "required": [
         "id",
         "name",
-        "email"
+        "email",
+        "role"
       ]
     },
     "Book": {

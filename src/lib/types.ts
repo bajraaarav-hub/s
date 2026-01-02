@@ -4,7 +4,8 @@ export type Student = {
   points: number;
   streak: number;
   rank?: number;
-  avatarUrl: string;
+  avatarUrl?: string;
+  role?: 'student' | 'teacher';
 };
 
 export type Homework = {
