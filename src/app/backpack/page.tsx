@@ -6,7 +6,7 @@ import { Homework, Student } from '@/lib/types';
 import { collection, query, doc } from 'firebase/firestore';
 import { useEffect } from 'react';
 import { setDocumentNonBlocking } from '@/firebase/non-blocking-updates';
-import { homeworkAssignments as mockHomework, leaderboardData, mainStudent } from '@/lib/data';
+import { homeworkAssignments as mockHomework, mainStudent } from '@/lib/data';
 import { useRouter } from 'next/navigation';
 
 export default function BackpackPage() {
@@ -39,13 +39,6 @@ export default function BackpackPage() {
       mockHomework.forEach(hw => {
         const hwRef = doc(firestore, 'homework', hw.id);
         setDocumentNonBlocking(hwRef, hw, { merge: true });
-      });
-      // Seed users
-      leaderboardData.forEach(student => {
-        if (student.id !== user.uid) {
-            const userRef = doc(firestore, 'users', student.id);
-            setDocumentNonBlocking(userRef, student, { merge: true });
-        }
       });
     }
   }, [firestore, user]);

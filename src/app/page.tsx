@@ -27,14 +27,7 @@ export default function DashboardPage() {
             const hwRef = doc(firestore, 'homework', hw.id);
             setDocumentNonBlocking(hwRef, hw, { merge: true });
         });
-        // Seed users
-        leaderboardData.forEach(student => {
-            // Don't overwrite the current user's document if it's in the seed data
-            if (student.id !== user.uid) {
-                const userRef = doc(firestore, 'users', student.id);
-                setDocumentNonBlocking(userRef, student, { merge: true });
-            }
-        });
+        
          // Seed current books for main student, but tied to the current user
         const currentBooksRef = doc(firestore, 'users', user.uid, 'currentBooks', 'initial-books');
         setDocumentNonBlocking(currentBooksRef, { studentId: user.uid, id: 'initial-books', bookIds: ['Math Textbook', 'History Textbook', 'Laptop'] }, { merge: true });
