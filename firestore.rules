@@ -68,6 +68,13 @@ service cloud.firestore {
     function isStudentIdImmutable() {
       return request.resource.data.studentId == resource.data.id;
     }
+    
+    /**
+     * Returns true if the requesting user has the 'teacher' role.
+     */
+    function isTeacher() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'teacher';
+    }
 
     // -------------------------------------------------------------------------
     // Top-Level Collections
@@ -85,14 +92,14 @@ service cloud.firestore {
       allow delete: if isExistingOwner(userId);
 
       /**
-       * @description A user can manage their own leave requests. Any signed-in user can read them.
+       * @description A user can manage their own leave requests. Teachers can update any request.
        * @path /users/{userId}/leaveRequests/{leaveRequestId}
        */
       match /leaveRequests/{leaveRequestId} {
         allow get: if isSignedIn();
         allow list: if isSignedIn();
         allow create: if isOwner(userId) && hasValidStudentIdOnCreate(userId);
-        allow update: if isExistingOwner(userId) && isStudentIdImmutable();
+        allow update: if (isExistingOwner(userId) && isStudentIdImmutable()) || isTeacher();
         allow delete: if isExistingOwner(userId);
       }
       
