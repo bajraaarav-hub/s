@@ -14,8 +14,8 @@ import {AlertTriangle, CalendarIcon, Loader2, Sparkles} from 'lucide-react';
 import {useState, useTransition} from 'react';
 import {useForm} from 'react-hook-form';
 import * as z from 'zod';
-import {CodeBlock} from './code-block';
 import {Skeleton} from './ui/skeleton';
+import { Student } from '@/lib/types';
 
 const formSchema = z
   .object({
@@ -36,7 +36,7 @@ export function LeaveRequestHelper({
   attendance,
   pastRequests,
 }: {
-  student: LeaveRequestInput['pastLeaveRequests'];
+  student: Student;
   grades: LeaveRequestInput['grades'];
   attendance: LeaveRequestInput['pastAttendance'];
   pastRequests: LeaveRequestInput['pastLeaveRequests'];
@@ -61,7 +61,7 @@ export function LeaveRequestHelper({
       setAnalysisResult(null);
       try {
         const result = await generateLeaveRequestReasoning({
-          studentId: 'student-01', // Mocked as per data
+          studentId: student.id,
           leaveStartDate: format(values.dateRange.from, 'yyyy-MM-dd'),
           leaveEndDate: format(values.dateRange.to || values.dateRange.from, 'yyyy-MM-dd'),
           reason: values.reason,

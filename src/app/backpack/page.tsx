@@ -7,10 +7,18 @@ import { collection, query, doc } from 'firebase/firestore';
 import { useEffect } from 'react';
 import { setDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { homeworkAssignments as mockHomework, leaderboardData, mainStudent } from '@/lib/data';
+import { useRouter } from 'next/navigation';
 
 export default function BackpackPage() {
   const firestore = useFirestore();
   const { user, isUserLoading } = useUser();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (!isUserLoading && !user) {
+      router.push('/login');
+    }
+  }, [isUserLoading, user, router]);
 
   const homeworkQuery = useMemoFirebase(() => {
     if (!firestore) return null;
@@ -51,7 +59,7 @@ export default function BackpackPage() {
       }
   }, [isStudentLoading, studentData, user, firestore]);
 
-  if (isHomeworkLoading || isUserLoading || isStudentLoading) {
+  if (isHomeworkLoading || isUserLoading || isStudentLoading || !user) {
     return <div>Loading...</div>;
   }
 
