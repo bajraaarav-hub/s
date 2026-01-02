@@ -62,6 +62,7 @@ service cloud.firestore {
      * This function checks the user's profile document in the /users collection.
      */
     function isTeacher() {
+      // Ensure the user is signed in and their document exists before checking the role.
       return isSignedIn() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'teacher';
     }
 
@@ -129,54 +130,58 @@ service cloud.firestore {
       allow create: if isOwner(userId) || isSignedIn();
       allow update: if isExistingOwner(userId) || isSignedIn();
       allow delete: if isExistingOwner(userId);
-    }
 
-    /**
-     * @description A student can manage their own leave requests. A teacher can read all leave requests and update their status.
-     * @path /users/{userId}/leaveRequests/{leaveRequestId}
-     * @allow (get) An authenticated user reading their own leave request: `auth.uid == 'user_123'`, `get /users/user_123/leaveRequests/req_abc`
-     * @allow (list) A teacher listing all leave requests.
-     * @deny (update) Another user trying to update a leave request: `auth.uid == 'user_456'`, `update /users/user_123/leaveRequests/req_abc`
-     * @principle Enforces document ownership for students and grants broader access to teachers.
-     */
-    match /users/{userId}/leaveRequests/{leaveRequestId} {
-      allow get: if isOwner(userId) || isTeacher();
-      allow list: if isOwner(userId) || isTeacher();
-      allow create: if isOwner(userId) && hasValidStudentIdOnCreate(userId);
-      allow update: if (isExistingOwner(userId) && isStudentIdImmutable()) || isTeacher();
-      allow delete: if isExistingOwner(userId);
-    }
+      /**
+       * @description A student can manage their own leave requests. A teacher can read all leave requests and update their status.
+       * @path /users/{userId}/leaveRequests/{leaveRequestId}
+       * @allow (get) An authenticated user reading their own leave request: `auth.uid == 'user_123'`, `get /users/user_123/leaveRequests/req_abc`
+       * @allow (list) A teacher listing all leave requests.
+       * @deny (update) Another user trying to update a leave request: `auth.uid == 'user_456'`, `update /users/user_123/leaveRequests/req_abc`
+       * @principle Enforces document ownership for students and grants broader access to teachers.
+       */
+      match /leaveRequests/{leaveRequestId} {
+        allow get: if isOwner(userId) || isTeacher();
+        allow create: if isOwner(userId) && hasValidStudentIdOnCreate(userId);
+        allow update: if (isExistingOwner(userId) && isStudentIdImmutable()) || isTeacher();
+        allow delete: if isExistingOwner(userId);
+      }
+      
+      /**
+       * @description A user can read and manage their own AI analysis results.
+       * @path /users/{userId}/aiAnalysis/{aiAnalysisId}
+       * @allow (delete) An authenticated user deleting their own analysis record: `auth.uid == 'user_123'`, `delete /users/user_123/aiAnalysis/analysis_1`
+       * @deny (create) Another user trying to create an analysis record: `auth.uid == 'user_456'`, `create /users/user_123/aiAnalysis/analysis_2`
+       * @principle Enforces document ownership within a user's private subcollection.
+       */
+      match /aiAnalysis/{aiAnalysisId} {
+        allow get: if isOwner(userId);
+        allow list: if isOwner(userId);
+        allow create: if isOwner(userId) && hasValidStudentIdOnCreate(userId);
+        allow update: if isExistingOwner(userId) && isStudentIdImmutable();
+        allow delete: if isExistingOwner(userId);
+      }
 
-    /**
-     * @description A user can read and manage their own AI analysis results.
-     * @path /users/{userId}/aiAnalysis/{aiAnalysisId}
-     * @allow (delete) An authenticated user deleting their own analysis record: `auth.uid == 'user_123'`, `delete /users/user_123/aiAnalysis/analysis_1`
-     * @deny (create) Another user trying to create an analysis record: `auth.uid == 'user_456'`, `create /users/user_123/aiAnalysis/analysis_2`
-     * @principle Enforces document ownership within a user's private subcollection.
-     */
-    match /users/{userId}/aiAnalysis/{aiAnalysisId} {
-      allow get: if isOwner(userId);
-      allow list: if isOwner(userId);
-      allow create: if isOwner(userId) && hasValidStudentIdOnCreate(userId);
-      allow update: if isExistingOwner(userId) && isStudentIdImmutable();
-      allow delete: if isExistingOwner(userId);
-    }
-
-    /**
-     * @description A user can manage the record of their currently detected books.
-     * @path /users/{userId}/currentBooks/{currentBooksId}
-     * @allow (list) An authenticated user listing their current book records: `auth.uid == 'user_123'`, `list /users/user_123/currentBooks`
-     * @deny (get) An unauthenticated user trying to get a record: `auth == null`, `get /users/user_123/currentBooks/record_1`
-     * @principle Enforces document ownership within a user's private subcollection.
-     */
-    match /users/{userId}/currentBooks/{currentBooksId} {
-      allow get: if isOwner(userId);
-      allow list: if isOwner(userId);
-      allow create: if isOwner(userId) || isSignedIn(); // Allow seeding
-      allow update: if isExistingOwner(userId) || isSignedIn(); // Allow seeding
-      allow delete: if isExistingOwner(userId);
+      /**
+       * @description A user can manage the record of their currently detected books.
+       * @path /users/{userId}/currentBooks/{currentBooksId}
+       * @allow (list) An authenticated user listing their current book records: `auth.uid == 'user_123'`, `list /users/user_123/currentBooks`
+       * @deny (get) An unauthenticated user trying to get a record: `auth == null`, `get /users/user_123/currentBooks/record_1`
+       * @principle Enforces document ownership within a user's private subcollection.
+       */
+      match /currentBooks/{currentBooksId} {
+        allow get: if isOwner(userId);
+        allow list: if isOwner(userId);
+        allow create: if isOwner(userId) || isSignedIn(); // Allow seeding
+        allow update: if isExistingOwner(userId) || isSignedIn(); // Allow seeding
+        allow delete: if isExistingOwner(userId);
+      }
     }
     
+    // Rule for collection group query
+    match /{path=**}/leaveRequests/{leaveRequestId} {
+      allow list: if isTeacher();
+    }
+
 
     /**
      * @description General book information is public and readable by anyone, but cannot be modified by clients.
@@ -224,3 +229,5 @@ service cloud.firestore {
     }
   }
 }
+
+    
