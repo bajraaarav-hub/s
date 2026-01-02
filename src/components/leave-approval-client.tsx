@@ -75,7 +75,7 @@ function LeaveRequestItem({ request, onStatusChange }: { request: LeaveRequest, 
   const { data: student, isLoading: isStudentLoading } = useDoc<Student>(studentDocRef);
 
   const pastLeaveQuery = useMemoFirebase(() => firestore ? query(collection(firestore, 'users', request.studentId, 'leaveRequests')) : null, [firestore, request.studentId]);
-  const { data: pastLeaveRequests, isLoading: arePastLeavesLoading } = useCollection<PastLeaveRequest>(pastLeaveQuery);
+  const { data: pastLeaveRequests, isLoading: arePastLeavesLoading } = useCollection<LeaveRequest>(pastLeaveQuery);
 
   const gradesQuery = useMemoFirebase(() => firestore ? query(collection(firestore, 'users', request.studentId, 'grades')) : null, [firestore, request.studentId]);
   const { data: grades, isLoading: areGradesLoading } = useCollection<Grade>(gradesQuery);
@@ -87,12 +87,16 @@ function LeaveRequestItem({ request, onStatusChange }: { request: LeaveRequest, 
     if (isLoadingDetails) return;
     startAiTransition(async () => {
       try {
+        const historicalLeaves = (pastLeaveRequests || []).filter(
+          (req) => req.status !== 'pending'
+        ) as PastLeaveRequest[];
+        
         const result = await generateLeaveRequestReasoning({
           studentId: request.studentId,
           leaveStartDate: request.startDate,
           leaveEndDate: request.endDate,
           reason: request.reason,
-          pastLeaveRequests: pastLeaveRequests || [],
+          pastLeaveRequests: historicalLeaves,
           pastAttendance: attendance || [],
           grades: grades || [],
         });
@@ -128,7 +132,7 @@ function LeaveRequestItem({ request, onStatusChange }: { request: LeaveRequest, 
             <div className='text-left'>
                 <p className="font-semibold">{request.studentName}</p>
                 <p className="text-sm text-muted-foreground">
-                    {request.startDate} to {request.endDate}
+                    {new Date(request.startDate).toLocaleDateString()} to {new Date(request.endDate).toLocaleDateString()}
                 </p>
             </div>
             <Badge variant="outline">{request.status}</Badge>
@@ -184,3 +188,5 @@ export function LeaveApprovalClient({ pendingRequests }: { pendingRequests: Leav
     </Accordion>
   );
 }
+
+    
