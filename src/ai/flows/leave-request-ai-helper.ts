@@ -11,7 +11,7 @@
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
 
-const LeaveRequestInputSchema = z.object({
+export const LeaveRequestInputSchema = z.object({
   studentId: z.string().describe('The ID of the student requesting leave.'),
   leaveStartDate: z.string().describe('The start date of the leave request (YYYY-MM-DD).'),
   leaveEndDate: z.string().describe('The end date of the leave request (YYYY-MM-DD).'),
@@ -42,7 +42,7 @@ const LeaveRequestInputSchema = z.object({
 
 export type LeaveRequestInput = z.infer<typeof LeaveRequestInputSchema>;
 
-const LeaveRequestOutputSchema = z.object({
+export const LeaveRequestOutputSchema = z.object({
   summary: z.string().describe('A summary of the AI analysis of the leave request.'),
   riskScore: z.number().describe('A risk score (0-1) indicating the potential impact of the leave request.'),
 });
@@ -89,6 +89,7 @@ const leaveRequestPrompt = ai.definePrompt({
     {{#each grades}}
       Subject: {{{subject}}}, Grade: {{{grade}}}
     {{/each}}
+
   {{else}}
     No grades available.
   {{/if}}

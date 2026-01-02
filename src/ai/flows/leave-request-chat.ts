@@ -6,7 +6,7 @@
 
 import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
-import { LeaveRequestInput, LeaveRequestOutput } from './leave-request-ai-helper';
+import { LeaveRequestInput, LeaveRequestInputSchema, LeaveRequestOutput, LeaveRequestOutputSchema } from './leave-request-ai-helper';
 
 const ChatMessageSchema = z.object({
   role: z.enum(['user', 'model']),
