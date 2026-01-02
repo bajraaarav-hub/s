@@ -1,7 +1,7 @@
 'use client';
 import Link from 'next/link';
 import {usePathname, useRouter} from 'next/navigation';
-import {Backpack, BarChart3, BookOpenCheck, CalendarCheck, Home, LogOut, ShieldCheck, ListTodo} from 'lucide-react';
+import {Backpack, BarChart3, BookOpenCheck, CalendarCheck, Home, LogOut, ShieldCheck, ListTodo, ThumbsUp} from 'lucide-react';
 import {
   Sidebar,
   SidebarContent,
