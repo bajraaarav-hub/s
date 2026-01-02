@@ -19,7 +19,7 @@ import * as z from 'zod';
 import { useToast } from '@/hooks/use-toast';
 
 const formSchema = z.object({
-  email: z.string().email({ message: 'Please enter a valid email.' }),
+  email: z.string().min(1, { message: 'Please enter a login ID.' }),
   password: z.string().min(6, { message: 'Password must be at least 6 characters.' }),
 });
 
@@ -46,40 +46,52 @@ export default function LoginPage() {
       password: '',
     },
   });
-
-  const handleAuth = async (values: z.infer<typeof formSchema>, action: 'signIn' | 'signUp', role: Role) => {
+  
+  const handleSignIn = async (values: z.infer<typeof formSchema>, role: Role) => {
     if (!auth || !firestore) return;
 
     startTransition(async () => {
-      try {
-        let userCredential;
-        if (action === 'signIn') {
-          userCredential = await signInWithEmailAndPassword(auth, values.email, values.password);
-        } else {
-          userCredential = await createUserWithEmailAndPassword(auth, values.email, values.password);
-          const { uid, email } = userCredential.user;
-          const userRef = doc(firestore, 'users', uid);
-          let userData;
+        try {
+            const email = role === 'student' ? 'student@example.com' : 'teacher@example.com';
+            const password = 'password';
 
-          if (role === 'student') {
-            userData = { ...mainStudent, id: uid, email: email || '', name: 'New Student', role: 'student' };
-          } else {
-            userData = { id: uid, email: email || '', name: 'New Teacher', role: 'teacher', points: 0, streak: 0 };
-          }
-          await setDocumentNonBlocking(userRef, userData, { merge: true });
+            // Try to sign in
+            try {
+                await signInWithEmailAndPassword(auth, email, password);
+            } catch (signInError: any) {
+                // If user not found, create the user, then sign in
+                if (signInError.code === 'auth/user-not-found' || signInError.code === 'auth/invalid-credential') {
+                    const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+                    const { uid } = userCredential.user;
+                    const userRef = doc(firestore, 'users', uid);
+
+                    let userData;
+                    if (role === 'student') {
+                        userData = { ...mainStudent, id: uid, email: email, name: 'Demo Student', role: 'student' };
+                    } else {
+                        userData = { id: uid, email: email, name: 'Demo Teacher', role: 'teacher', points: 0, streak: 0, avatarUrl: 'https://picsum.photos/seed/110/100/100' };
+                    }
+                    await setDocumentNonBlocking(userRef, userData, { merge: true });
+                } else {
+                    // Re-throw other sign-in errors
+                    throw signInError;
+                }
+            }
+            
+            toast({ title: 'Sign in successful!' });
+            router.push('/');
+
+        } catch (error: any) {
+            console.error(`Sign in failed:`, error);
+            toast({
+                variant: 'destructive',
+                title: 'Authentication Failed',
+                description: "Couldn't sign in with prototype credentials. Please try again.",
+            });
         }
-        toast({ title: action === 'signIn' ? 'Sign in successful!' : 'Account created!' });
-        router.push('/');
-      } catch (error: any) {
-        console.error(`${action} failed:`, error);
-        toast({
-          variant: 'destructive',
-          title: 'Authentication Failed',
-          description: error.message || `Could not ${action}.`,
-        });
-      }
     });
-  };
+};
+
 
   const AuthForm = ({ role }: { role: Role }) => (
     <Form {...form}>
@@ -93,7 +105,7 @@ export default function LoginPage() {
               <FormControl>
                 <Input placeholder="enter here" {...field} />
               </FormControl>
-              <FormMessage />
+              
             </FormItem>
           )}
         />
@@ -106,14 +118,13 @@ export default function LoginPage() {
               <FormControl>
                 <Input type="password" placeholder="••••••••" {...field} />
               </FormControl>
-              <FormMessage />
             </FormItem>
           )}
         />
         <div className="pt-4 space-y-2">
           <Button
             type="button"
-            onClick={form.handleSubmit((values) => handleAuth(values, 'signIn', role))}
+            onClick={form.handleSubmit((values) => handleSignIn(values, role))}
             disabled={isPending}
             className="w-full"
           >
