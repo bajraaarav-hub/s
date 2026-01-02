@@ -49,15 +49,15 @@ export default function DashboardPage() {
     const { data: student, isLoading: isStudentLoading } = useDoc<Student>(studentDocRef);
 
     const homeworkQuery = useMemoFirebase(() => {
-        if (!firestore) return null;
+        if (!firestore || !user) return null;
         return query(collection(firestore, 'homework'), limit(1));
-    }, [firestore]);
+    }, [firestore, user]);
     const { data: homework, isLoading: isHomeworkLoading } = useCollection<Homework>(homeworkQuery);
     
     const leaderboardQuery = useMemoFirebase(() => {
-        if (!firestore) return null;
+        if (!firestore || !user) return null;
         return query(collection(firestore, 'users'));
-    }, [firestore]);
+    }, [firestore, user]);
     const { data: leaderboard, isLoading: isLeaderboardLoading } = useCollection<Student>(leaderboardQuery);
     
     if (isUserLoading || !user || !student || isStudentLoading || isHomeworkLoading || isLeaderboardLoading) {
