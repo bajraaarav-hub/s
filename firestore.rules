@@ -119,6 +119,30 @@ service cloud.firestore {
         allow update: if isExistingOwner(userId);
         allow delete: if isExistingOwner(userId);
       }
+      
+      /**
+       * @description Grades are readable by any signed in user and writeable only by owner.
+       * @path /users/{userId}/grades/{gradeId}
+       */
+      match /grades/{gradeId} {
+          allow get: if isSignedIn();
+          allow list: if isSignedIn();
+          allow create: if isOwner(userId);
+          allow update: if isOwner(userId);
+          allow delete: if isOwner(userId);
+      }
+
+      /**
+       * @description Attendance is readable by any signed in user and writeable only by owner.
+       * @path /users/{userId}/attendance/{attendanceId}
+       */
+      match /attendance/{attendanceId} {
+          allow get: if isSignedIn();
+          allow list: if isSignedIn();
+          allow create: if isOwner(userId);
+          allow update: if isOwner(userId);
+          allow delete: if isOwner(userId);
+      }
     }
     
     // Rule for collection group query

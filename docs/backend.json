@@ -251,6 +251,44 @@
         "studentId",
         "bookIds"
       ]
+    },
+    "Grade": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "title": "Grade",
+        "type": "object",
+        "description": "Represents a grade for a subject.",
+        "properties": {
+            "id": {
+                "type": "string"
+            },
+            "subject": {
+                "type": "string"
+            },
+            "grade": {
+                "type": "number"
+            }
+        },
+        "required": ["id", "subject", "grade"]
+    },
+    "AttendanceRecord": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "title": "AttendanceRecord",
+        "type": "object",
+        "description": "Represents a single attendance record for a student.",
+        "properties": {
+            "id": {
+                "type": "string"
+            },
+            "date": {
+                "type": "string",
+                "format": "date-time"
+            },
+            "status": {
+                "type": "string",
+                "enum": ["present", "absent"]
+            }
+        },
+        "required": ["id", "date", "status"]
     }
   },
   "auth": {
@@ -383,6 +421,30 @@
               "description": "The unique identifier for the current books record."
             }
           ]
+        }
+      },
+      {
+        "path": "/users/{userId}/grades/{gradeId}",
+        "definition": {
+            "entityName": "Grade",
+            "schema": {"$ref": "#/backend/entities/Grade"},
+            "description": "Stores student grades.",
+            "params": [
+                {"name": "userId"},
+                {"name": "gradeId"}
+            ]
+        }
+      },
+      {
+        "path": "/users/{userId}/attendance/{attendanceId}",
+        "definition": {
+            "entityName": "AttendanceRecord",
+            "schema": {"$ref": "#/backend/entities/AttendanceRecord"},
+            "description": "Stores student attendance records.",
+            "params": [
+                {"name": "userId"},
+                {"name": "attendanceId"}
+            ]
         }
       }
     ],

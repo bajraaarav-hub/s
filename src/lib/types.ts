@@ -20,11 +20,13 @@ export type CurrentBooks = {
 }
 
 export type AttendanceRecord = {
+  id: string;
   date: string;
   status: 'present' | 'absent';
 };
 
 export type Grade = {
+  id: string;
   subject: string;
   grade: number;
 };

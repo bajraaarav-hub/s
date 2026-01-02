@@ -71,21 +71,20 @@ function LeaveRequestItem({ request, onStatusChange }: { request: LeaveRequest, 
   const { toast } = useToast();
   const firestore = useFirestore();
 
-  // Mock data fetching hooks for student details
   const studentDocRef = useMemoFirebase(() => firestore ? doc(firestore, 'users', request.studentId) : null, [firestore, request.studentId]);
   const { data: student, isLoading: isStudentLoading } = useDoc<Student>(studentDocRef);
 
   const pastLeaveQuery = useMemoFirebase(() => firestore ? query(collection(firestore, 'users', request.studentId, 'leaveRequests')) : null, [firestore, request.studentId]);
   const { data: pastLeaveRequests, isLoading: arePastLeavesLoading } = useCollection<PastLeaveRequest>(pastLeaveQuery);
-  
-  // NOTE: In a real app, grades and attendance would also be fetched from Firestore.
-  // For this prototype, we'll use empty arrays as placeholders.
-  const grades: Grade[] = []; 
-  const attendance: AttendanceRecord[] = [];
 
+  const gradesQuery = useMemoFirebase(() => firestore ? query(collection(firestore, 'users', request.studentId, 'grades')) : null, [firestore, request.studentId]);
+  const { data: grades, isLoading: areGradesLoading } = useCollection<Grade>(gradesQuery);
+
+  const attendanceQuery = useMemoFirebase(() => firestore ? query(collection(firestore, 'users', request.studentId, 'attendance')) : null, [firestore, request.studentId]);
+  const { data: attendance, isLoading: isAttendanceLoading } = useCollection<AttendanceRecord>(attendanceQuery);
 
   const handleReview = () => {
-    if (!student || arePastLeavesLoading) return;
+    if (isLoadingDetails) return;
     startAiTransition(async () => {
       try {
         const result = await generateLeaveRequestReasoning({
@@ -94,8 +93,8 @@ function LeaveRequestItem({ request, onStatusChange }: { request: LeaveRequest, 
           leaveEndDate: request.endDate,
           reason: request.reason,
           pastLeaveRequests: pastLeaveRequests || [],
-          pastAttendance: attendance,
-          grades: grades,
+          pastAttendance: attendance || [],
+          grades: grades || [],
         });
         setAnalysisResult(result);
       } catch (error) {
@@ -120,7 +119,7 @@ function LeaveRequestItem({ request, onStatusChange }: { request: LeaveRequest, 
       })
   }
 
-  const isLoadingDetails = isStudentLoading || arePastLeavesLoading;
+  const isLoadingDetails = isStudentLoading || arePastLeavesLoading || areGradesLoading || isAttendanceLoading;
 
   return (
     <AccordionItem value={request.id}>
@@ -145,8 +144,8 @@ function LeaveRequestItem({ request, onStatusChange }: { request: LeaveRequest, 
           <AIAnalysisCard analysis={analysisResult} isLoading={isAiPending} />
         ) : (
             <Button onClick={handleReview} disabled={isAiPending || isLoadingDetails}>
-                {isAiPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />}
-                Review with AI
+                {isAiPending || isLoadingDetails ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />}
+                {isLoadingDetails ? 'Loading Student Data...' : 'Review with AI'}
             </Button>
         )}
         
