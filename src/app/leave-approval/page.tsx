@@ -72,6 +72,10 @@ function LeaveApprovalContent() {
     return 'border-accent';
   };
 
+  if (areRequestsLoading) {
+    return <div>Loading student leave requests...</div>
+  }
+
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
       <div className="md:col-span-1">
@@ -170,7 +174,7 @@ export default function LeaveApprovalPage() {
   useEffect(() => {
     if (!isUserLoading && !user) {
       router.push('/login');
-    } else if (!isUserLoading && !isTeacherLoading && teacher && teacher.role !== 'teacher') {
+    } else if (!isUserLoading && user && !isTeacherLoading && teacher && teacher.role !== 'teacher') {
         router.push('/');
     }
   }, [isUserLoading, user, isTeacherLoading, teacher, router]);

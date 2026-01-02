@@ -24,15 +24,13 @@ export default function LeaderboardPage() {
   }, [firestore, user]);
   const { data: leaderboard, isLoading: isLeaderboardLoading } = useCollection<Student>(leaderboardQuery);
 
-  if (isUserLoading || isLeaderboardLoading || !user) {
+  if (isUserLoading || isLeaderboardLoading || !user || !leaderboard) {
     return <div>Loading...</div>;
   }
 
-  const rankedLeaderboard = leaderboard
-    ? [...leaderboard]
+  const rankedLeaderboard = [...leaderboard]
         .sort((a, b) => b.points - a.points)
-        .map((student, index) => ({ ...student, rank: index + 1 }))
-    : [];
+        .map((student, index) => ({ ...student, rank: index + 1 }));
 
   return (
     <div className="space-y-8">

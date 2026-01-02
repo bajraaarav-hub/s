@@ -60,7 +60,7 @@ export default function DashboardPage() {
     }, [firestore, user]);
     const { data: leaderboard, isLoading: isLeaderboardLoading } = useCollection<Student>(leaderboardQuery);
     
-    if (isUserLoading || !user || !student || isStudentLoading || isHomeworkLoading || isLeaderboardLoading) {
+    if (isUserLoading || !user || isStudentLoading || isHomeworkLoading || isLeaderboardLoading) {
         return <div>Loading...</div>;
     }
     

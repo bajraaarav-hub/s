@@ -59,14 +59,14 @@ export default function BackpackPage() {
       }
   }, [isStudentLoading, studentData, user, firestore]);
 
-  if (isHomeworkLoading || isUserLoading || isStudentLoading || !user) {
+  if (isHomeworkLoading || isUserLoading || isStudentLoading || !user || !allHomework) {
     return <div>Loading...</div>;
   }
 
   const currentStudent = studentData || { ...mainStudent, id: user?.uid || mainStudent.id, name: 'Anonymous Panda'};
 
 
-  if (!currentStudent || !allHomework) {
+  if (!currentStudent) {
     return <div>Loading student data...</div>
   }
 
