@@ -89,7 +89,7 @@ export default function LoginPage() {
           name="email"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Email</FormLabel>
+              <FormLabel>Login ID</FormLabel>
               <FormControl>
                 <Input placeholder="name@example.com" {...field} />
               </FormControl>
@@ -110,7 +110,7 @@ export default function LoginPage() {
             </FormItem>
           )}
         />
-        <div className="pt-4">
+        <div className="pt-4 space-y-2">
           <Button
             type="button"
             onClick={form.handleSubmit((values) => handleAuth(values, 'signIn', role))}
