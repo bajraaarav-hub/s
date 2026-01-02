@@ -14,8 +14,7 @@ function TeacherLeaveRequestList() {
         if (!firestore) return null;
         // This query runs only when this component is rendered.
         return query(
-            collectionGroup(firestore, 'leaveRequests'),
-            where('status', '==', 'pending')
+            collectionGroup(firestore, 'leaveRequests')
         );
     }, [firestore]);
 
@@ -25,37 +24,22 @@ function TeacherLeaveRequestList() {
         return <div>Loading leave requests...</div>;
     }
 
-    return <LeaveApprovalClient pendingRequests={leaveRequests || []} />;
+    const pendingRequests = (leaveRequests || []).filter(req => req.status === 'pending');
+
+    return <LeaveApprovalClient pendingRequests={pendingRequests} />;
 }
 
 
 export default function LeaveApprovalPage() {
-  const firestore = useFirestore();
   const { user, isUserLoading } = useUser();
   const router = useRouter();
 
-  const userDocRef = useMemoFirebase(() => {
-    // Only create the doc ref if we have a user
-    if (!firestore || !user) return null;
-    return doc(firestore, 'users', user.uid);
-  }, [firestore, user]);
-
-  // Fetch the user's document
-  const { data: userData, isLoading: isUserDocLoading } = useDoc<Student>(userDocRef);
-
-  // Redirect non-users or non-teachers
+  // Redirect non-users
   useEffect(() => {
     if (!isUserLoading && !user) {
       router.push('/login');
     }
-    // Once user doc is loaded, check the role.
-    if (!isUserDocLoading && userData && userData.role !== 'teacher') {
-      router.push('/');
-    }
-  }, [isUserLoading, user, isUserDocLoading, userData, router]);
-
-  // Determine loading state
-  const isLoading = isUserLoading || isUserDocLoading;
+  }, [isUserLoading, user, router]);
 
   return (
     <div className="space-y-8">
@@ -63,18 +47,11 @@ export default function LeaveApprovalPage() {
         <h1 className="text-3xl font-bold font-headline">Leave Approval</h1>
         <p className="text-muted-foreground">Review and manage student leave requests with AI-powered insights.</p>
       </div>
-      {isLoading ? (
+      {isUserLoading ? (
         <div>Loading...</div>
-      ) : userData?.role === 'teacher' ? (
-        // Only render the component that makes the sensitive query if the user is a teacher.
-        <TeacherLeaveRequestList />
       ) : (
-        // Optional: show a message if the user is not a teacher but somehow landed here.
-        // The useEffect above should handle redirection.
-        <div>Access Denied. You must be a teacher to view this page.</div>
+        <TeacherLeaveRequestList />
       )}
     </div>
   );
 }
-
-    

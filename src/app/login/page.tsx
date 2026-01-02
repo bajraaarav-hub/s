@@ -2,7 +2,6 @@
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { useAuth, useUser, useFirestore } from '@/firebase';
@@ -17,13 +16,13 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { useToast } from '@/hooks/use-toast';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 
 const formSchema = z.object({
-  email: z.string().min(1, { message: 'Please enter a login ID.' }),
+  email: z.string().email({ message: 'Please enter a valid email.' }),
   password: z.string().min(6, { message: 'Password must be at least 6 characters.' }),
+  role: z.enum(['student', 'teacher'], { required_error: 'You must select a role.' }),
 });
-
-type Role = 'student' | 'teacher';
 
 export default function LoginPage() {
   const { user } = useUser();
@@ -44,97 +43,54 @@ export default function LoginPage() {
     defaultValues: {
       email: '',
       password: '',
+      role: 'student',
     },
   });
-  
-  const handleSignIn = async (values: z.infer<typeof formSchema>, role: Role) => {
+
+  const handleAuth = async (values: z.infer<typeof formSchema>) => {
     if (!auth || !firestore) return;
 
     startTransition(async () => {
+      try {
+        const { email, password, role } = values;
+
+        // Try to sign in first
         try {
-            const email = role === 'student' ? 'student@example.com' : 'teacher@example.com';
-            const password = 'password';
+          await signInWithEmailAndPassword(auth, email, password);
+        } catch (signInError: any) {
+          // If the user does not exist, create a new one
+          if (signInError.code === 'auth/user-not-found' || signInError.code === 'auth/invalid-credential') {
+            const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+            const { uid } = userCredential.user;
+            const userRef = doc(firestore, 'users', uid);
 
-            // Try to sign in
-            try {
-                await signInWithEmailAndPassword(auth, email, password);
-            } catch (signInError: any) {
-                // If user not found, create the user, then sign in
-                if (signInError.code === 'auth/user-not-found' || signInError.code === 'auth/invalid-credential') {
-                    const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-                    const { uid } = userCredential.user;
-                    const userRef = doc(firestore, 'users', uid);
-
-                    let userData;
-                    if (role === 'student') {
-                        userData = { ...mainStudent, id: uid, email: email, name: 'Demo Student', role: 'student' };
-                    } else {
-                        userData = { id: uid, email: email, name: 'Demo Teacher', role: 'teacher', points: 0, streak: 0, avatarUrl: 'https://picsum.photos/seed/110/100/100' };
-                    }
-                    await setDocumentNonBlocking(userRef, userData, { merge: true });
-                } else {
-                    // Re-throw other sign-in errors
-                    throw signInError;
-                }
+            let userData;
+            const name = email.split('@')[0];
+            if (role === 'student') {
+              userData = { ...mainStudent, id: uid, email, name, role: 'student' };
+            } else {
+              userData = { id: uid, email, name, role: 'teacher', points: 0, streak: 0, avatarUrl: 'https://picsum.photos/seed/110/100/100' };
             }
-            
-            toast({ title: 'Sign in successful!' });
-            router.push('/');
-
-        } catch (error: any) {
-            console.error(`Sign in failed:`, error);
-            toast({
-                variant: 'destructive',
-                title: 'Authentication Failed',
-                description: "Couldn't sign in with prototype credentials. Please try again.",
-            });
+            // Use setDoc with merge to be safe
+            await setDocumentNonBlocking(userRef, userData, { merge: true });
+          } else {
+            // Re-throw other sign-in errors
+            throw signInError;
+          }
         }
+
+        toast({ title: 'Sign in successful!' });
+        router.push('/');
+      } catch (error: any) {
+        console.error(`Authentication failed:`, error);
+        toast({
+          variant: 'destructive',
+          title: 'Authentication Failed',
+          description: error.message || "Could not sign in or create an account. Please try again.",
+        });
+      }
     });
-};
-
-
-  const AuthForm = ({ role }: { role: Role }) => (
-    <Form {...form}>
-      <form className="space-y-4">
-        <FormField
-          control={form.control}
-          name="email"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Login ID</FormLabel>
-              <FormControl>
-                <Input placeholder="enter here" {...field} />
-              </FormControl>
-              
-            </FormItem>
-          )}
-        />
-        <FormField
-          control={form.control}
-          name="password"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Password</FormLabel>
-              <FormControl>
-                <Input type="password" placeholder="••••••••" {...field} />
-              </FormControl>
-            </FormItem>
-          )}
-        />
-        <div className="pt-4 space-y-2">
-          <Button
-            type="button"
-            onClick={form.handleSubmit((values) => handleSignIn(values, role))}
-            disabled={isPending}
-            className="w-full"
-          >
-            {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            Sign In
-          </Button>
-        </div>
-      </form>
-    </Form>
-  );
+  };
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background">
@@ -145,21 +101,79 @@ export default function LoginPage() {
             <h1 className="text-3xl font-bold font-headline">SmartBackpack</h1>
           </div>
           <CardTitle className="text-2xl">Welcome</CardTitle>
-          <CardDescription>Sign in to your account to continue</CardDescription>
+          <CardDescription>Sign in or create an account</CardDescription>
         </CardHeader>
         <CardContent>
-          <Tabs defaultValue="student" className="w-full">
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="student">Student</TabsTrigger>
-              <TabsTrigger value="teacher">Teacher</TabsTrigger>
-            </TabsList>
-            <TabsContent value="student" className="pt-4">
-              <AuthForm role="student" />
-            </TabsContent>
-            <TabsContent value="teacher" className="pt-4">
-              <AuthForm role="teacher" />
-            </TabsContent>
-          </Tabs>
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(handleAuth)} className="space-y-4">
+              <FormField
+                control={form.control}
+                name="email"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Email</FormLabel>
+                    <FormControl>
+                      <Input placeholder="student@example.com" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="password"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Password</FormLabel>
+                    <FormControl>
+                      <Input type="password" placeholder="••••••••" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+               <FormField
+                control={form.control}
+                name="role"
+                render={({ field }) => (
+                  <FormItem className="space-y-3">
+                    <FormLabel>Role (for new accounts)</FormLabel>
+                    <FormControl>
+                      <RadioGroup
+                        onValueChange={field.onChange}
+                        defaultValue={field.value}
+                        className="flex space-x-4"
+                      >
+                        <FormItem className="flex items-center space-x-2 space-y-0">
+                          <FormControl>
+                            <RadioGroupItem value="student" />
+                          </FormControl>
+                          <FormLabel className="font-normal">Student</FormLabel>
+                        </FormItem>
+                        <FormItem className="flex items-center space-x-2 space-y-0">
+                          <FormControl>
+                            <RadioGroupItem value="teacher" />
+                          </FormControl>
+                          <FormLabel className="font-normal">Teacher</FormLabel>
+                        </FormItem>
+                      </RadioGroup>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <div className="pt-4 space-y-2">
+                <Button
+                  type="submit"
+                  disabled={isPending}
+                  className="w-full"
+                >
+                  {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  Sign In / Sign Up
+                </Button>
+              </div>
+            </form>
+          </Form>
         </CardContent>
       </Card>
     </div>
