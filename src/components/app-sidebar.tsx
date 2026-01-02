@@ -1,7 +1,7 @@
 'use client';
 import Link from 'next/link';
 import {usePathname} from 'next/navigation';
-import {Backpack, BarChart3, BookOpenCheck, CalendarCheck, Home, ThumbsUp} from 'lucide-react';
+import {Backpack, BarChart3, BookOpenCheck, Home, ThumbsUp} from 'lucide-react';
 import {
   Sidebar,
   SidebarContent,
@@ -16,7 +16,6 @@ import { ThemeSwitcher } from './theme-switcher';
 const navItems = [
   {href: '/', icon: Home, label: 'Dashboard'},
   {href: '/backpack', icon: BookOpenCheck, label: 'Book Check'},
-  {href: '/attendance', icon: CalendarCheck, label: 'Attendance'},
   {href: '/leave-requests', icon: ThumbsUp, label: 'Leave Requests'},
   {href: '/leaderboard', icon: BarChart3, label: 'Leaderboard'},
 ];

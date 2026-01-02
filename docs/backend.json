@@ -92,37 +92,6 @@
         "dueDate"
       ]
     },
-    "Attendance": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "Attendance",
-      "type": "object",
-      "description": "Represents a student's attendance record for a specific date.",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the attendance record."
-        },
-        "studentId": {
-          "type": "string",
-          "description": "Reference to User. (Relationship: User 1:N Attendance)"
-        },
-        "date": {
-          "type": "string",
-          "description": "The date of the attendance record.",
-          "format": "date-time"
-        },
-        "status": {
-          "type": "string",
-          "description": "The attendance status (e.g., present, absent)."
-        }
-      },
-      "required": [
-        "id",
-        "studentId",
-        "date",
-        "status"
-      ]
-    },
     "LeaveRequest": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "LeaveRequest",
@@ -335,26 +304,6 @@
         }
       },
       {
-        "path": "/users/{userId}/attendance/{attendanceId}",
-        "definition": {
-          "entityName": "Attendance",
-          "schema": {
-            "$ref": "#/backend/entities/Attendance"
-          },
-          "description": "Stores attendance records for a user. Owned by the user with id `userId`.",
-          "params": [
-            {
-              "name": "userId",
-              "description": "The unique identifier of the user."
-            },
-            {
-              "name": "attendanceId",
-              "description": "The unique identifier of the attendance record."
-            }
-          ]
-        }
-      },
-      {
         "path": "/users/{userId}/leaveRequests/{leaveRequestId}",
         "definition": {
           "entityName": "LeaveRequest",
@@ -431,6 +380,6 @@
         }
       }
     ],
-    "reasoning": "The Firestore structure is designed to support the SmartBackpack Pro application, emphasizing authorization independence, clarity, and scalability. User-specific data is stored under `/users/{userId}`. Homework assignments, books, attendance, leave requests, AI analysis results, leaderboard data, and current books are structured to ensure easy data retrieval and maintainability. The structure incorporates denormalization to avoid `get()` calls in security rules and enable atomic operations.\n\n**Authorization Independence and QAPs:**\n\n*   **User Data:** User profiles are stored directly under `/users/{userId}`, ensuring that access control is based solely on the authenticated user's ID.\n*   **Books:** Book information is stored at the root level in a `/books` collection. While not user-specific, this segregation ensures a homogeneous security posture.\n*   **Homework:** Homework assignments are stored in a `/homework` collection, enabling straightforward querying and management.\n*   **Attendance, Leave Requests, AI Analysis, CurrentBooks:** These are subcollections under `/users/{userId}`, enforcing ownership and simplifying security rules. This supports QAPs by ensuring that only the user (or admin with appropriate roles - which aren't defined here but would be in separate collections) can access this data.\n*   **Leaderboard:** Stored at the root level in a `/leaderboard` collection. Leaderboard entries include a `studentId` field, which, while not directly used for authorization in rules due to the collection's global nature, facilitates efficient querying for leaderboard data.\n\nThis structure avoids hierarchical authorization dependencies (`get()`) by denormalizing authorization context where necessary. Security rules can be written based solely on the path and `request.auth.uid`, without needing to fetch data from parent documents. The separation of data into distinct collections and subcollections ensures a homogeneous security posture, simplifying security rules and preventing unintended access. The design supports secure `list` operations (QAPs) by structuring data to align with access control requirements."
+    "reasoning": "The Firestore structure is designed to support the SmartBackpack Pro application, emphasizing authorization independence, clarity, and scalability. User-specific data is stored under `/users/{userId}`. Homework assignments, books, attendance, leave requests, AI analysis results, leaderboard data, and current books are structured to ensure easy data retrieval and maintainability. The structure incorporates denormalization to avoid `get()` calls in security rules and enable atomic operations.\n\n**Authorization Independence and QAPs:**\n\n*   **User Data:** User profiles are stored directly under `/users/{userId}`, ensuring that access control is based solely on the authenticated user's ID.\n*   **Books:** Book information is stored at the root level in a `/books` collection. While not user-specific, this segregation ensures a homogeneous security posture.\n*   **Homework:** Homework assignments are stored in a `/homework` collection, enabling straightforward querying and management.\n*   **Leave Requests, AI Analysis, CurrentBooks:** These are subcollections under `/users/{userId}`, enforcing ownership and simplifying security rules. This supports QAPs by ensuring that only the user (or admin with appropriate roles - which aren't defined here but would be in separate collections) can access this data.\n*   **Leaderboard:** Stored at the root level in a `/leaderboard` collection. Leaderboard entries include a `studentId` field, which, while not directly used for authorization in rules due to the collection's global nature, facilitates efficient querying for leaderboard data.\n\nThis structure avoids hierarchical authorization dependencies (`get()`) by denormalizing authorization context where necessary. Security rules can be written based solely on the path and `request.auth.uid`, without needing to fetch data from parent documents. The separation of data into distinct collections and subcollections ensures a homogeneous security posture, simplifying security rules and preventing unintended access. The design supports secure `list` operations (QAPs) by structuring data to align with access control requirements."
   }
 }

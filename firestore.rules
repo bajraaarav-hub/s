@@ -2,7 +2,7 @@ rules_version = '2';
 
 /**
  * This ruleset enforces a strict user-ownership model for the SmartBackpack Pro application.
- * All personal user data (attendance, leave requests, etc.) is nested within a private
+ * All personal user data (leave requests, etc.) is nested within a private
  * `/users/{userId}` document tree, ensuring users can only access their own information.
  * Publicly accessible data, such as general book information, homework assignments,
  * and the global leaderboard, are stored in top-level collections and are configured
@@ -16,7 +16,6 @@ rules_version = '2';
  *
  * Data Structure:
  * - /users/{userId}: The root for all data belonging to a single user.
- *   - /attendance/{attendanceId}: Private attendance records.
  *   - /leaveRequests/{leaveRequestId}: Private leave requests.
  *   - /aiAnalysis/{aiAnalysisId}: Private AI-generated analysis.
  *   - /currentBooks/{currentBooksId}: Private list of user's current books.
@@ -124,21 +123,6 @@ service cloud.firestore {
       allow delete: if isExistingOwner(userId);
 
       /**
-       * @description A user can manage their own attendance records.
-       * @path /users/{userId}/attendance/{attendanceId}
-       * @allow (create) An authenticated user creating an attendance record for themselves: `auth.uid == 'user_123'`, `create /users/user_123/attendance/day_1`
-       * @deny (list) Another user trying to list attendance records: `auth.uid == 'user_456'`, `list /users/user_123/attendance`
-       * @principle Enforces document ownership within a user's private subcollection.
-       */
-      match /attendance/{attendanceId} {
-        allow get: if isOwner(userId);
-        allow list: if isOwner(userId);
-        allow create: if isOwner(userId) && hasValidStudentIdOnCreate(userId);
-        allow update: if isExistingOwner(userId) && isStudentIdImmutable();
-        allow delete: if isExistingOwner(userId);
-      }
-
-      /**
        * @description A user can manage their own leave requests.
        * @path /users/{userId}/leaveRequests/{leaveRequestId}
        * @allow (get) An authenticated user reading their own leave request: `auth.uid == 'user_123'`, `get /users/user_123/leaveRequests/req_abc`
@@ -203,7 +187,7 @@ service cloud.firestore {
      * @description Homework assignments are public and readable by anyone, but cannot be modified by clients.
      * @path /homework/{homeworkId}
      * @allow (list) Any user, authenticated or not, can list all homework assignments.
-     * @deny (update) Any user trying to change a homework assignment: `update /homework/hw_1`
+     deny (update) Any user trying to change a homework assignment: `update /homework/hw_1`
      * @principle Provides public read access while securing writes for a backend-managed collection.
      */
     match /homework/{homeworkId} {
